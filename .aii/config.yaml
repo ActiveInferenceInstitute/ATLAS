@@ -1,0 +1,36 @@
+# AII sidecar — InstituteOS metadata. Schema: instituteos.platform.aii_sidecar
+meta:
+  updated: '2026-06-30'
+repo:
+  name: ATLAS
+  slug: atlas
+  full_name: ActiveInferenceInstitute/ATLAS
+  description: ATLAS
+institute:
+  category: research
+  steward: Active Inference Institute
+ecosystem:
+  relations:
+  - repo: ActiveInferenceInstitute/InstituteOS
+    relation: referenced-by
+    note: Federated via the InstituteOS .aii manifest.
+  links:
+    github: https://github.com/ActiveInferenceInstitute/ATLAS
+    website: https://www.activeinference.org
+artifacts:
+- path: README.md
+  kind: doc
+  description: Repository overview.
+provenance:
+  license: CC-BY-4.0
+  citation:
+    text: Active Inference Institute — ATLAS.
+instituteos:
+  tags:
+  - atlas
+capabilities:
+- documentation
+tasks:
+  inventory:
+    cmd: git ls-files
+    description: List tracked files.
