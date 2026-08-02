@@ -70,4 +70,12 @@ Additional commits appended below as the pass progresses.
 
 ## Phase 4 — Final verification & push
 
-(pending — filled in after push)
+- Verification: no trailing whitespace in any markdown file; all relative
+  links in README.md, CONTRIBUTING.md, TO-DO.md, REVIEW_LOG, and
+  docs/index.md resolve; no broken in-page anchors; org website URLs return
+  HTTP 200 (curl). `git status` contained only the intended changes.
+- Commits: a8854b5, 84b3c03, acbcef2, 4e0ad77 (four commits; six files
+  changed in total: README.md, CITATION.cff, CONTRIBUTING.md,
+  docs/index.md, TO-DO.md, and this log).
+- Pushed to `main` (`77dd26a..4e0ad77`); `git status` confirms up to date
+  with origin/main.
