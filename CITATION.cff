@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use or reference this repository, please cite it as below."
+title: "ATLAS"
+abstract: "Project materials repository of the Active Inference Institute."
+authors:
+  - name: "Active Inference Institute"
+license: "CC-BY-4.0"
+url: "https://github.com/ActiveInferenceInstitute/ATLAS"
+date-released: "2024-08-21"
