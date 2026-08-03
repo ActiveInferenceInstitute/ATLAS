@@ -1,6 +1,7 @@
 # ATLAS — Documentation To-Do
 
-Last reviewed: 2026-08-02 (mega-deep documentation review pass, see
+Last reviewed: 2026-08-02 (second pass: ecosystem research and full
+documentation-set expansion; see
 [REVIEW_LOG_2026-08-02.md](REVIEW_LOG_2026-08-02.md)).
 
 Scope definitions:
@@ -29,25 +30,41 @@ items are listed at the end.
 - [x] Add machine-readable citation metadata (CITATION.cff) — ✓ `84b3c03`
 - [x] Add contribution guide (CONTRIBUTING.md) — ✓ `84b3c03`
 - [x] Add docs/ with a documentation index — `docs/index.md` ✓ `acbcef2`
-- [x] Add this TO-DO file scoping all review findings ✓ (this commit)
-- [x] Record the review pass in REVIEW_LOG_2026-08-02.md ✓ (this commit)
+- [x] Add this TO-DO file scoping all review findings ✓ `4e0ad77`
+- [x] Record the review pass in REVIEW_LOG_2026-08-02.md ✓ `4e0ad77`
+- [x] Add research-grounded About page (classification, status, ecosystem
+      context, license) — `docs/overview.md` ✓ `0bdaeb8`
+- [x] Add field-by-field .aii sidecar reference against the InstituteOS
+      schema — `docs/metadata.md` ✓ `0bdaeb8`
+- [x] Add quickstart guide — `docs/quickstart.md` ✓ `0bdaeb8`
+- [x] Add security policy — `SECURITY.md` ✓ `fb466e7`
+- [x] Add GitHub issue and pull request templates — `.github/` ✓ `fb466e7`
+- [x] Enrich `.aii/config.yaml` to the documented `aii-sidecar/v1` schema
+      (identity, affiliation, status, integration, validate task) with only
+      values true of this repository — ✓ `298f121`
 
 ## Major
 
-- [ ] Full documentation set (quickstart, usage, configuration reference,
-      architecture overview) — **deferred**: the repository contains no code
-      or project content yet; writing such guides now would require
-      fabrication. Add when actual content lands.
+- [x] Full documentation set (quickstart, usage, configuration reference,
+      contribution guide) — completed to the extent possible without
+      content: quickstart, sidecar configuration reference, and contribution
+      guide now exist (`docs/`). Architecture and API documentation remain
+      deferred until the repository gains code or project content — see the
+      open list.
 
 ## Open / deferred
 
-- Major: full documentation set — deferred until the repository gains
-  content (see above).
+- Architecture and API documentation — deferred until the repository gains
+  code or project content; writing them now would require fabrication.
+- Content port decision: the public reference fork
+  ([docxology/ATLAS](https://github.com/docxology/ATLAS)) contains an ATLAS
+  Knowledge Management System implementation, but its content is not
+  verified, and its headers state the MIT license while this repository is
+  CC-BY-4.0. Porting requires a steward decision on provenance and license
+  reconciliation. Documented in `docs/overview.md`; not ported.
 - GitHub repository description on github.com still reads "ATLAS " (stub) —
   update via the repository settings page; not a commit-level change.
-- `.aii/config.yaml` `description: ATLAS` is self-referential — left
-  untouched; the file is InstituteOS-managed metadata (schema
-  `instituteos.platform.aii_sidecar`) and is not governed by this repo's
-  docs.
-- SECURITY.md — not applicable until the repository contains code or
-  user-facing content.
+- Authoritative sidecar validation: run InstituteOS's own validator
+  (`python -m instituteos.platform.aii_sidecar.validate .`) and its CI gate
+  on the enriched sidecar when available; local verification (YAML parse +
+  documented schema fields) passed on 2026-08-02.

@@ -79,3 +79,79 @@ Additional commits appended below as the pass progresses.
   docs/index.md, TO-DO.md, and this log).
 - Pushed to `main` (`77dd26a..4e0ad77`); `git status` confirms up to date
   with origin/main.
+
+---
+
+## Second pass — 2026-08-02 (post-push continuation)
+
+Follow-up pass driven by the directive to proceed with all updates and
+research directions ambitiously and comprehensively.
+
+### Research findings (all verified against public sources)
+
+- The Institute's public Open Source Map
+  (https://activeinference.institute/knowledge/) classifies ATLAS as a
+  *project materials repository* in the *open-source projects* family; the
+  public Directory
+  (https://activeinference.institute/directory/) lists it under the same
+  classification.
+- The Directory states the Institute's default license for public materials
+  is CC BY-NC-SA 4.0 and that specific products may use different terms;
+  ATLAS's LICENSE (CC-BY-4.0) is such a per-repository choice and is
+  authoritative for this repository.
+- InstituteOS documents the `.aii` sidecar convention publicly
+  (docs/reference/modules/platform/aii_sidecar.md): schema `aii-sidecar/v1`,
+  validation via `python -m instituteos.platform.aii_sidecar.validate
+  <repo>`, and a 100%-completeness CI gate for reference sidecars.
+- A public fork of this repository (docxology/ATLAS, created 2024-08-21,
+  minutes after this repo's initial commit; last pushed 2025-06-15) contains
+  an "ATLAS Knowledge Management System" implementation in Python
+  (src/atlas package, tests, examples, doc/ tree). Its own documentation
+  makes unverified claims (version/status headers) and states the MIT
+  license.
+
+### Decisions
+
+- **Not ported:** the fork's content was NOT merged into this public
+  repository. Provenance is unverified (no prior work trail), the fork's
+  claims are unendorsed, and its MIT headers conflict with this repo's
+  CC-BY-4.0. The relationship is documented factually in docs/overview.md
+  with cited sources; a port decision is left open in TO-DO.md for the
+  steward.
+- **Sidecar enriched:** `.aii/config.yaml` was aligned with the documented
+  `aii-sidecar/v1` schema, mirroring InstituteOS's own sidecar and the
+  Active_Inference_Ontology exemplar, using only values true of this
+  repository (default_branch main, affiliation institute, status wip,
+  maturity experimental, empty release placeholders, integration
+  analytics/dashboard false + sync pull, added validate task). Authoritative
+  validation remains InstituteOS's validator/CI gate.
+- **Docs expanded:** research-grounded About page (with a verified citation
+  ledger and Sources blocks), sidecar metadata reference, quickstart,
+  security policy, and GitHub issue/PR templates.
+
+### Implementation
+
+| Commit | Change |
+| --- | --- |
+| 0bdaeb8 | docs: expand documentation set with research-grounded guides |
+| fb466e7 | docs: add security policy and issue/PR templates |
+| 298f121 | chore(aii): align sidecar with documented aii-sidecar/v1 schema |
+
+Additional commits appended below.
+
+### Verification (second pass)
+
+- Citation ledger (grounded-citations skill): 4 sources registered, verbatim
+  evidence quotes attached; docs/overview.md, docs/metadata.md and
+  docs/quickstart.md pass structural + evidence verification (ids valid,
+  Sources blocks consistent, every cited source carries verbatim evidence).
+- No trailing whitespace in any .md/.yaml file; no broken relative links
+  across all docs; sidecar parses as YAML with the 11 documented top-level
+  keys (ruby psych).
+- Not run: InstituteOS validator (repo too large to clone locally for the
+  check; noted as an open item for the InstituteOS CI gate). No test suites
+  exist in this repository.
+
+## Phase 4 (second pass) — Final verification & push
+
+(pending — filled in after push)
