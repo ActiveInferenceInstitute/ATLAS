@@ -1,0 +1,15 @@
+name: docs-qa
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run documentation QA gate
+        run: python3 scripts/docs_qa.py
