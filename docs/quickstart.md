@@ -1,6 +1,6 @@
 # Quickstart
 
-How to clone, inspect, and contribute to the ATLAS repository.
+How to clone, inspect, test, and contribute to the ATLAS repository.
 
 ## Clone
 
@@ -13,14 +13,28 @@ cd ATLAS
 
 | Path | Description |
 | --- | --- |
+| `src/atlas/` | The ATLAS package. |
+| `tests/` | Test suite (run with pytest). |
+| `examples/` | Runnable examples. |
 | `README.md` | Repository overview. |
 | `CONTRIBUTING.md` | How to contribute. |
 | `CITATION.cff` | Machine-readable citation metadata. |
 | `LICENSE` | CC-BY-4.0 license. |
 | `SECURITY.md` | Security reporting. |
-| `docs/` | Documentation index, overview, metadata reference, quickstart. |
+| `docs/` | Documentation index, overview, architecture, API, usage, metadata, quickstart. |
 | `TO-DO.md` | Scoped improvements and open items. |
 | `.aii/config.yaml` | InstituteOS metadata sidecar. |
+
+## Install and test
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e . pytest pytest-cov
+python -m pytest
+```
+
+See [docs/usage.md](usage.md) for a usage walkthrough.
 
 ## Validate the metadata sidecar
 
@@ -32,25 +46,22 @@ python -m instituteos.platform.aii_sidecar.validate .
 ```
 
 This requires the `instituteos` package; see the InstituteOS documentation
-for installation.[3] The sidecar also declares a portable task that lists
-tracked files:
+for installation.[3] The sidecar also declares portable tasks that list
+tracked files and run the documentation QA gate:
 
 ```bash
 git ls-files
+python3 scripts/docs_qa.py
 ```
 
 ## Contribute
 
 - Open an issue or pull request via GitHub; see
   [CONTRIBUTING.md](../CONTRIBUTING.md).
-- Keep changes grounded: this repository is documentation-facing, and content
-  must match the actual state of the repository.
+- Keep changes grounded: content must match the actual state of the
+  repository, and the test suite must stay green.
 - All contributions are licensed CC-BY-4.0.
 
 ## Cite
 
 See [CITATION.cff](../CITATION.cff) or the README's citation section.
-
-## Sources
-
-[3] https://github.com/ActiveInferenceInstitute/InstituteOS/blob/main/docs/reference/modules/platform/aii_sidecar.md — InstituteOS — aii_sidecar schema documentation

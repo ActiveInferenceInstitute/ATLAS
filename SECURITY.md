@@ -1,8 +1,9 @@
 # Security
 
-ATLAS is a documentation and metadata repository of the Active Inference
-Institute. It currently contains no executable code, so the attack surface is
-limited to documentation content and repository metadata.
+ATLAS is a public repository of the Active Inference Institute containing a
+Python knowledge management package plus documentation and metadata. The
+attack surface covers the Python code (`src/atlas/`) and any documentation
+or metadata that could mislead or be abused.
 
 ## Reporting a vulnerability
 

@@ -15,12 +15,13 @@ ATLAS is a public repository stewarded by the
 
 - Before starting substantial work, open an issue to discuss the change so it
   can be coordinated with the repository stewards.
-- Keep changes scoped and grounded: this repository is documentation-facing,
-  and content should match the actual state of the repository. Do not add
-  links, statistics, or claims that cannot be verified against the repository
-  or the Institute's public sources.
+- Keep changes scoped and grounded: content must match the actual state of
+  the repository. Do not add links, statistics, or claims that cannot be
+  verified against the repository or the Institute's public sources.
+- Code changes must keep the test suite green (`python -m pytest`) and pass
+  the documentation QA gate (`python3 scripts/docs_qa.py`).
 - Follow the existing structure and conventions of the repository, and keep
-  documentation changes proportionate to the content they describe.
+  changes proportionate to the content they describe.
 
 ## Licensing
 

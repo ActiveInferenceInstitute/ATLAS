@@ -17,38 +17,42 @@ Institute as steward and the repository's category as research.[3]
 
 ## Current contents and status
 
-As of 2026-08-02 the repository contains metadata and documentation only:
+As of 2026-08-02 the repository contains the ATLAS knowledge management
+system implementation plus metadata and documentation:
 
-- `README.md` — repository overview.
-- `LICENSE` — CC-BY-4.0 license.
-- `CITATION.cff` — machine-readable citation metadata.
-- `CONTRIBUTING.md` — contribution guide.
-- `SECURITY.md` — security reporting.
-- `docs/` — documentation index and guides (this page, metadata reference,
-  quickstart).
-- `TO-DO.md` — scoped improvements and open items.
-- `.aii/config.yaml` — InstituteOS metadata sidecar.
+- `src/atlas/` — the ATLAS package (engine, entities, patterns, queries,
+  interfaces, integrations, visualization, utils).
+- `tests/` — test suite; `examples/` — runnable examples.
+- `README.md`, `LICENSE` (CC-BY-4.0), `CITATION.cff`, `CONTRIBUTING.md`,
+  `SECURITY.md`, `AGENTS.md`, `scripts/docs_qa.py`, `.github/` (templates
+  and CI), `docs/` (index, overview, architecture, API, usage, metadata,
+  quickstart), `TO-DO.md`, and the `.aii` metadata sidecar.
 
-No code or project content has been published in this repository. Its
-history: initialized 2024-08-21, sidecar and license added 2026-06-30,
-documentation pass on 2026-08-02 (see `REVIEW_LOG_2026-08-02.md`).
+History: initialized 2024-08-21; sidecar and license added 2026-06-30;
+documentation passes and the code port on 2026-08-02 (see
+`REVIEW_LOG_2026-08-02.md`).
 
 ## Ecosystem context
 
 - **InstituteOS federation.** The repository carries an InstituteOS metadata
   sidecar, and the sidecar declares that ATLAS is federated through the
   InstituteOS `.aii` manifest.[3]
-- **Reference implementation.** A public fork of this repository
-  ([docxology/ATLAS](https://github.com/docxology/ATLAS)) contains an "ATLAS
-  Knowledge Management System" implementation, described there as "a
+- **Reference implementation and port.** A public fork of this repository
+  ([docxology/ATLAS](https://github.com/docxology/ATLAS)) contained an
+  "ATLAS Knowledge Management System" implementation, described there as "a
   comprehensive knowledge management framework with modular composability,
   dynamic pattern recognition, and question-oriented information
   discovery."[4] The fork was created 2024-08-21, minutes after this
-  repository's initial commit, and was last updated 2025-06-15.[4] Its content
-  has not been merged into this repository; claims made in the fork's own
-  documentation are not verified by or endorsed in this repository, and the
-  fork's headers state the MIT license, which differs from this repository's
-  CC-BY-4.0 license.
+  repository's initial commit, and was last updated 2025-06-15.[4]
+  On 2026-08-02 the implementation was ported into this repository
+  (curated: code, tests, and examples only) under this repository's
+  CC-BY-4.0 license. The fork's own documentation was not ported: its
+  claims (version/status headers such as "Production Ready", an
+  aspirational Web UI and REST API, and assessment artifacts) were not
+  verifiable against its code, and its headers stated the MIT license,
+  which differs from this repository's CC-BY-4.0. The ported test suite was
+  aligned with the actual code API, and the GraphML/GEXF export path was
+  fixed during verification.
 
 ## License
 
