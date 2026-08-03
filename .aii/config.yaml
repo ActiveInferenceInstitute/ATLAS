@@ -1,14 +1,25 @@
-# AII sidecar — InstituteOS metadata. Schema: instituteos.platform.aii_sidecar
+# AII sidecar — InstituteOS metadata. Schema: instituteos.platform.aii_sidecar.models.AiiSidecar (aii-sidecar/v1)
+schema: aii-sidecar/v1
+
 meta:
-  updated: '2026-06-30'
+  sidecar_version: 1.0.0
+  updated: 2026-08-02
+
 repo:
   name: ATLAS
   slug: atlas
   full_name: ActiveInferenceInstitute/ATLAS
-  description: ATLAS
+  description: Project materials repository of the Active Inference Institute.
+  default_branch: main
+  homepage: https://github.com/ActiveInferenceInstitute/ATLAS
+
 institute:
+  affiliation: institute
   category: research
+  status: wip
+  maturity: experimental
   steward: Active Inference Institute
+
 ecosystem:
   relations:
   - repo: ActiveInferenceInstitute/InstituteOS
@@ -17,20 +28,46 @@ ecosystem:
   links:
     github: https://github.com/ActiveInferenceInstitute/ATLAS
     website: https://www.activeinference.org
+
 artifacts:
 - path: README.md
   kind: doc
   description: Repository overview.
+- path: CONTRIBUTING.md
+  kind: doc
+  description: Contribution guidelines.
+- path: CITATION.cff
+  kind: doc
+  description: Machine-readable citation metadata.
+- path: docs/index.md
+  kind: doc
+  description: Documentation index.
+
 provenance:
   license: CC-BY-4.0
   citation:
     text: Active Inference Institute — ATLAS.
+  current_release: ""
+  releases_manifest: ""
+
 instituteos:
+  dashboard_mode: repos
+  registries: []
   tags:
   - atlas
+
 capabilities:
 - documentation
+
+integration:
+  analytics: false
+  dashboard: false
+  sync: pull
+
 tasks:
   inventory:
     cmd: git ls-files
     description: List tracked files.
+  validate:
+    cmd: python -m instituteos.platform.aii_sidecar.validate .
+    description: Validate this sidecar against the aii-sidecar/v1 schema.
