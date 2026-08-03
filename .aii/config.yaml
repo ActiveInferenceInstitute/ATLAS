@@ -71,3 +71,9 @@ tasks:
   validate:
     cmd: python -m instituteos.platform.aii_sidecar.validate .
     description: Validate this sidecar against the aii-sidecar/v1 schema.
+  qa:
+    cmd: python3 scripts/docs_qa.py
+    description: Run the documentation QA gate (whitespace, links, YAML).
+
+docs:
+  - docs/README.md
