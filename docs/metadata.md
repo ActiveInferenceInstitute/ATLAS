@@ -37,7 +37,8 @@ InstituteOS platform: `python -m instituteos.platform.aii_sidecar.validate
 | `instituteos.registries` | Registry memberships | none |
 | `instituteos.tags` | Tags | `atlas` |
 | `capabilities` | Declared capabilities | `documentation` |
-| `tasks` | Portable runnable ops | `inventory` (`git ls-files`), `validate` (sidecar schema validation) |
+| `tasks` | Portable runnable ops | `inventory` (`git ls-files`), `validate` (sidecar schema validation), `qa` (documentation QA gate) |
+| `docs` | Declared paths under `.aii/` | `docs/README.md` |
 
 ## Validation
 

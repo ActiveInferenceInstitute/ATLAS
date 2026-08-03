@@ -1,6 +1,7 @@
 # ATLAS
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![Docs QA](https://github.com/ActiveInferenceInstitute/ATLAS/actions/workflows/docs-qa.yml/badge.svg)](https://github.com/ActiveInferenceInstitute/ATLAS/actions/workflows/docs-qa.yml)
 
 Repository of the Active Inference Institute. ATLAS is classified by the
 Institute's public [Open Source Map](https://activeinference.institute/knowledge/)
@@ -26,13 +27,29 @@ summary of what ATLAS is and its ecosystem context, see
 | Path | Description |
 | --- | --- |
 | [README.md](README.md) | This overview. |
+| [AGENTS.md](AGENTS.md) | Working conventions for contributors (human and agent). |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute. |
 | [CITATION.cff](CITATION.cff) | Machine-readable citation metadata. |
 | [LICENSE](LICENSE) | CC-BY-4.0 license text and summary. |
 | [SECURITY.md](SECURITY.md) | Security reporting. |
 | [docs/](docs/) | Documentation index and guides. |
 | [TO-DO.md](TO-DO.md) | Scoped documentation improvements and open items. |
+| [scripts/docs_qa.py](scripts/docs_qa.py) | Documentation QA gate (also run in CI). |
+| [.github/](.github/) | Issue/PR templates and the `docs-qa` workflow. |
 | [.aii/config.yaml](.aii/config.yaml) | InstituteOS metadata sidecar. |
+
+## Quality gate
+
+Before opening a pull request, run the documentation QA gate and fix
+anything it reports:
+
+```bash
+python3 scripts/docs_qa.py
+```
+
+It checks trailing whitespace, relative links and anchors in markdown, and
+YAML parseability of `.aii/config.yaml` and `CITATION.cff`. The same gate
+runs automatically in CI (see the `Docs QA` badge above).
 
 ## License
 
