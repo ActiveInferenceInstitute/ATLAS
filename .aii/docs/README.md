@@ -10,7 +10,7 @@ For this repository:
 
 - `.aii/config.yaml` — the sidecar itself (schema: `aii-sidecar/v1`).
 - The full field-by-field reference lives in the repository docs:
-  [docs/metadata.md](../docs/metadata.md).
+  [docs/metadata.md](../../docs/metadata.md).
 
 Validate the sidecar with the InstituteOS CLI:
 
