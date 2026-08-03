@@ -70,7 +70,9 @@ def check_yaml(files: list[pathlib.Path], errors: list[str]) -> None:
             errors.append(f"{name}: not tracked")
             continue
         ruby = subprocess.run(
-            ["ruby", "-ryaml", "-e", "YAML.load_file(ARGV[0])", str(target)],
+            ["ruby", "-ryaml", "-rdate", "-e",
+             "YAML.safe_load(File.read(ARGV[0]), permitted_classes: [Date, Time], aliases: true)",
+             str(target)],
             capture_output=True,
             text=True,
         )
