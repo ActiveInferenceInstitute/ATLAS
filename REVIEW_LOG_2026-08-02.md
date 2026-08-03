@@ -166,3 +166,50 @@ Additional commits appended below.
   log).
 - Pushed to `main` (`573b466..749f661`); `git status` confirms up to date
   with origin/main.
+
+---
+
+## Third pass — 2026-08-02 (all other improvements)
+
+### Findings and decisions
+
+- GitHub-side metadata: the repository description is still the "ATLAS "
+  stub and no topics are set; this token has WRITE permission
+  (viewerCanAdminister=false), so `gh repo edit --description` was denied
+  (HTTP 404). Recorded as steward/admin open items in TO-DO.md. Private
+  vulnerability reporting is enabled (isSecurityPolicyEnabled=true), which
+  SECURITY.md now states directly.
+- Added a zero-dependency documentation QA gate (`scripts/docs_qa.py`:
+  trailing whitespace, relative links + in-file anchors, YAML parseability
+  of `.aii/config.yaml` and `CITATION.cff` via system ruby psych) and the
+  `docs-qa` GitHub Actions workflow that runs it on push/PR to main.
+- Added `AGENTS.md` recording repository ground rules (no fabrication, no
+  private information, documentation-facing scope) and the pre-commit QA
+  step — useful for both human contributors and agent tooling.
+- Added `.aii/docs/README.md` and declared it in the sidecar `docs` field,
+  following the InstituteOS sidecar convention (mirrors InstituteOS itself
+  and the Active_Inference_Ontology exemplar); added the `qa` portable task.
+
+### Implementation
+
+| Commit | Change |
+| --- | --- |
+| af83058 | chore: add documentation QA gate and CI workflow |
+| 871af5b | docs: add agent and contributor working conventions |
+| a5753ba | chore(aii): declare sidecar docs and QA task |
+| 1fd4d19 | docs: wire QA gate and conventions into repository docs |
+
+Additional commits appended below.
+
+### Verification (third pass)
+
+- `python3 scripts/docs_qa.py` passes locally (exit 0) on the full tracked
+  file set, including the new AGENTS.md, workflow, and .aii/docs files.
+- Attempted `gh repo edit --description ...`: denied (HTTP 404, WRITE not
+  admin) — outcome recorded, no retry.
+- Not run: InstituteOS validator (open item, see TO-DO.md); no test suites
+  exist in this repository.
+
+## Phase 4 (third pass) — Final verification & push
+
+(pending — filled in after push)

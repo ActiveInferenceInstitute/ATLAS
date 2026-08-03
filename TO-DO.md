@@ -1,8 +1,7 @@
 # ATLAS — Documentation To-Do
 
-Last reviewed: 2026-08-02 (second pass: ecosystem research and full
-documentation-set expansion; see
-[REVIEW_LOG_2026-08-02.md](REVIEW_LOG_2026-08-02.md)).
+Last reviewed: 2026-08-02 (third pass: QA gate, CI, and working
+conventions; see [REVIEW_LOG_2026-08-02.md](REVIEW_LOG_2026-08-02.md)).
 
 Scope definitions:
 
@@ -42,6 +41,15 @@ items are listed at the end.
 - [x] Enrich `.aii/config.yaml` to the documented `aii-sidecar/v1` schema
       (identity, affiliation, status, integration, validate task) with only
       values true of this repository — ✓ `298f121`
+- [x] Add documentation QA gate (whitespace, links/anchors, YAML) and the
+      `docs-qa` CI workflow — `scripts/docs_qa.py`,
+      `.github/workflows/docs-qa.yml` ✓ `af83058`
+- [x] Add agent/contributor working conventions — `AGENTS.md` ✓ `871af5b`
+- [x] Add `.aii/docs/README.md`, declare it in the sidecar `docs` field, and
+      add the `qa` portable task — ✓ `a5753ba`
+- [x] Wire the QA gate and conventions into README (badge, layout, quality
+      gate), SECURITY.md (private vulnerability reporting enabled), and the
+      metadata reference — ✓ `1fd4d19`
 
 ## Major
 
@@ -64,6 +72,11 @@ items are listed at the end.
   reconciliation. Documented in `docs/overview.md`; not ported.
 - GitHub repository description on github.com still reads "ATLAS " (stub) —
   update via the repository settings page; not a commit-level change.
+  Attempted via `gh repo edit` on 2026-08-02: denied (HTTP 404, this token
+  has WRITE permission, not admin). Requires a steward with admin access.
+- GitHub repository topics are not set (sibling repos use e.g.
+  `active-inference`, `inference`); adding them requires admin access —
+  steward action.
 - Authoritative sidecar validation: run InstituteOS's own validator
   (`python -m instituteos.platform.aii_sidecar.validate .`) and its CI gate
   on the enriched sidecar when available; local verification (YAML parse +
