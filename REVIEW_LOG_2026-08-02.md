@@ -303,4 +303,29 @@ Additional commits appended below.
 
 ## Phase 4 (fourth pass) — Final verification & push
 
-(pending — filled in after push)
+- Verification: `python3 scripts/docs_qa.py` passes; `python -m pytest`
+  reports 81 passed / 18 skipped (three consecutive clean runs); the
+  authoritative InstituteOS validator reports a valid sidecar with 100%
+  completeness; `examples/basic/basic_test.py` runs end-to-end; no build
+  artifacts or leftover scrub targets in `git status`.
+- Commits: f717245, 94f67e9, 5d7fee2, 76ddac6, 6d4cbe0, 42343e2 (six
+  commits; files changed: src/atlas/ (35 files), tests/ (12 files),
+  examples/ (3 files), setup.py, pyproject.toml,
+  .github/workflows/tests.yml, .aii/config.yaml, README.md, AGENTS.md,
+  CONTRIBUTING.md, SECURITY.md, docs/index.md, docs/overview.md,
+  docs/quickstart.md, docs/metadata.md, docs/architecture.md, docs/api.md,
+  docs/usage.md, TO-DO.md, and this log).
+- Pushed to `main` (`042005b..42343e2`); `git status` confirms up to date
+  with origin/main. The `docs-qa` and `tests` CI workflows run on this
+  push; results verified after push (see below).
+
+### CI status after push
+
+- Push `42343e2`: `tests` workflow green; `docs-qa` red — the QA gate's
+  YAML check was not portable: `YAML.load_file` raises
+  `Psych::DisallowedClass` for the unquoted date in `.aii/config.yaml` on
+  Ubuntu's Ruby 3.2 (strict Psych 4), while macOS system Ruby 2.6 (Psych
+  3.1) neither loads `Date` by default nor has `safe_load_file`.
+- Fix `e4138e6`: `YAML.safe_load(File.read(...), permitted_classes:
+  [Date, Time], aliases: true)` — portable across Psych 3.1+ and 4.
+- Push `e4138e6`: both `docs-qa` and `tests` workflows green.
