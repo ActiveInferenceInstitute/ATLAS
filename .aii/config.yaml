@@ -9,15 +9,15 @@ repo:
   name: ATLAS
   slug: atlas
   full_name: ActiveInferenceInstitute/ATLAS
-  description: Project materials repository of the Active Inference Institute.
+  description: Knowledge management system and project materials repository of the Active Inference Institute.
   default_branch: main
   homepage: https://github.com/ActiveInferenceInstitute/ATLAS
 
 institute:
   affiliation: institute
   category: research
-  status: wip
-  maturity: experimental
+  status: active
+  maturity: released
   steward: Active Inference Institute
 
 ecosystem:
@@ -25,23 +25,33 @@ ecosystem:
   - repo: ActiveInferenceInstitute/InstituteOS
     relation: referenced-by
     note: Federated via the InstituteOS .aii manifest.
+  - repo: docxology/ATLAS
+    relation: references
+    note: Public reference fork; the initial implementation was ported from it.
   links:
     github: https://github.com/ActiveInferenceInstitute/ATLAS
     website: https://www.activeinference.org
+    docs: docs/index.md
 
 artifacts:
+- path: src/atlas
+  kind: code
+  description: ATLAS knowledge management package.
+- path: tests
+  kind: code
+  description: Test suite.
+- path: setup.py
+  kind: code
+  description: Package configuration.
 - path: README.md
   kind: doc
   description: Repository overview.
-- path: CONTRIBUTING.md
-  kind: doc
-  description: Contribution guidelines.
-- path: CITATION.cff
-  kind: doc
-  description: Machine-readable citation metadata.
 - path: docs/index.md
   kind: doc
   description: Documentation index.
+- path: CITATION.cff
+  kind: doc
+  description: Machine-readable citation metadata.
 
 provenance:
   license: CC-BY-4.0
@@ -55,8 +65,12 @@ instituteos:
   registries: []
   tags:
   - atlas
+  - knowledge-management
+  - python
 
 capabilities:
+- python
+- knowledge-management
 - documentation
 
 integration:
@@ -74,6 +88,9 @@ tasks:
   qa:
     cmd: python3 scripts/docs_qa.py
     description: Run the documentation QA gate (whitespace, links, YAML).
+  test:
+    cmd: python -m pytest
+    description: Run the test suite.
 
 docs:
   - docs/README.md
