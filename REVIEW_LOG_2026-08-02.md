@@ -154,4 +154,15 @@ Additional commits appended below.
 
 ## Phase 4 (second pass) — Final verification & push
 
-(pending — filled in after push)
+- Verification: no trailing whitespace in any .md/.yaml/.cff file; all
+  relative links across the full doc set resolve; sidecar parses as YAML
+  (ruby psych) with the documented top-level keys; citation ledger
+  structural + evidence checks pass for the three research-grounded docs.
+  `git status` contained only the intended changes.
+- Commits: 0bdaeb8, fb466e7, 298f121, 749f661 (four commits; eleven files
+  changed: README.md, docs/index.md, docs/overview.md, docs/metadata.md,
+  docs/quickstart.md, SECURITY.md, .github/ISSUE_TEMPLATE.md,
+  .github/PULL_REQUEST_TEMPLATE.md, .aii/config.yaml, TO-DO.md, and this
+  log).
+- Pushed to `main` (`573b466..749f661`); `git status` confirms up to date
+  with origin/main.
