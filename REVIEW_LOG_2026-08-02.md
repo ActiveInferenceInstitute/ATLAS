@@ -224,3 +224,83 @@ Additional commits appended below.
   this log).
 - Pushed to `main` (`4432fe9..7763a1e`); `git status` confirms up to date
   with origin/main.
+
+---
+
+## Fourth pass — 2026-08-02 (implementation port and complete documentation)
+
+### Research and verification (all evidence-based)
+
+- Cloned the public reference fork (docxology/ATLAS) to a scratch dir:
+  229 tracked files, ~6.8k LOC Python in `src/atlas/`, ~127 test
+  functions, no LICENSE file (its headers claimed MIT), no secrets or
+  private paths found.
+- Ran the fork's own suite (scratch venv, numpy 1.26 and numpy 2.5.1):
+  77 passed / 3 failed / 18 skipped. The 3 failures were test/code drift —
+  tests asserted APIs that never existed (`Entity.get_statistics`,
+  `PatternEngine.cluster_patterns`/`clear`, `SimpleTransformInterface
+  .process`, plus wrong constructor argument order). The 18 skips were
+  optional-extras (psutil, matplotlib, obsidian). Collection also crashed
+  on `examples/Obsidian/test_integration.py` (`sys.exit(1)` at import).
+- The fork's documentation was found to be aspirational: its architecture
+  doc claims a Web UI and REST API that do not exist in its code (only an
+  HTTP *client* interface exists), an OpenAPI spec describes that
+  nonexistent API, and its overview header claims "Production Ready" at
+  v0.0.1 while the package reports 1.0.0.
+- A quickstart smoke test against the ported code exposed a real bug:
+  `export_graph()` (GraphML/GEXF) failed on non-scalar node attributes.
+
+### Decisions
+
+- **Curated port, not wholesale merge.** The implementation (code, tests,
+  examples) was ported under this repository's CC-BY-4.0 license with
+  scrubbed metadata (MIT headers, `atlas@example.com`, the fabricated
+  `github.com/atlas-team/atlas` URL → org repo). The fork's documentation
+  was NOT ported (unverifiable claims, assessment artifacts, aspirational
+  API docs). The port decision is documented in `docs/overview.md` and the
+  README provenance section.
+- **Drift fixed to the real API.** Three coverage tests were aligned with
+  the actual code, and a regression test was added for the GraphML/GEXF
+  export fix (non-scalar attributes JSON-encoded at export time). The
+  flaky entity-creation performance assertion (load-sensitive ratio) was
+  replaced with a generous per-entity absolute bound.
+- **Packaging.** `setup.py` scrubbed and numpy pin relaxed to `<3.0`
+  (verified against numpy 2.5.1); new `pyproject.toml` (setuptools build
+  backend + pytest config) so the parent monorepo's pytest config (`-n`)
+  cannot leak into this repository's test runs; broken console-script
+  entry points removed.
+- **Sidecar to 100%.** The authoritative InstituteOS validator was run
+  against the enriched sidecar (blobless clone + editable install of the
+  `instituteos` package): `OK: . has a valid .aii sidecar`, doctor
+  `completeness 100% (standard met: True)`. This also caught a missing
+  `ecosystem` block in an intermediate edit, which was restored
+  (relations incl. the reference fork; links incl. `docs`).
+- **Docs written from verified facts.** Architecture, API reference, and
+  usage guides were written against the actual code; the usage walkthrough
+  snippets were executed before publication.
+
+### Implementation
+
+| Commit | Change |
+| --- | --- |
+| f717245 | feat: port ATLAS knowledge management system from reference fork |
+| 94f67e9 | ci: add tests workflow |
+| 5d7fee2 | chore(aii): reach 100% sidecar completeness per InstituteOS validator |
+| 76ddac6 | docs: add architecture, API reference, and usage guides |
+| 6d4cbe0 | docs: update repository docs for the ported codebase |
+
+Additional commits appended below.
+
+### Verification (fourth pass)
+
+- `python -m pytest`: 81 passed / 18 skipped, three consecutive clean runs
+  in the repo venv; docs QA gate passes.
+- `examples/basic/basic_test.py` runs end-to-end (5/5 checks pass).
+- Authoritative InstituteOS validator: sidecar valid, completeness 100%.
+- Not run: viz-extras tests (matplotlib/plotly/obsidian/psutil not
+  installed in the verification venv — they skip; optional CI item in
+  TO-DO.md). No heavy suites exist beyond the pytest suite.
+
+## Phase 4 (fourth pass) — Final verification & push
+
+(pending — filled in after push)
