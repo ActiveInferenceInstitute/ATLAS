@@ -8,7 +8,7 @@ category, status, ecosystem links, tags).[3]
 The sidecar follows the `aii-sidecar/v1` schema and is validated by the
 InstituteOS platform: `python -m instituteos.platform.aii_sidecar.validate
 <repo>`.[3] This page documents the fields present in this repository's
-`.aii/config.yaml` as of 2026-08-02.
+`.aii/config.yaml` as of 2026-11-01.
 
 ## Field reference
 
@@ -16,7 +16,7 @@ InstituteOS platform: `python -m instituteos.platform.aii_sidecar.validate
 | --- | --- | --- |
 | `schema` | Sidecar schema identifier | `aii-sidecar/v1` |
 | `meta.sidecar_version` | Sidecar spec version | `1.0.0` |
-| `meta.updated` | Last sidecar update | `2026-08-02` |
+| `meta.updated` | Last sidecar update | `2026-11-01` |
 | `repo.name` / `slug` | Repository name and slug | `ATLAS` / `atlas` |
 | `repo.full_name` | GitHub full name | `ActiveInferenceInstitute/ATLAS` |
 | `repo.description` | Curated one-line description | `Knowledge management system and project materials repository of the Active Inference Institute.` |
@@ -27,9 +27,9 @@ InstituteOS platform: `python -m instituteos.platform.aii_sidecar.validate
 | `institute.status` | active \| wip \| archived \| deprecated | `active` |
 | `institute.maturity` | experimental \| wip \| released \| stable | `released` |
 | `institute.steward` | Stewarding body | `Active Inference Institute` |
-| `ecosystem.relations` | Cross-repo relations | `referenced-by` `ActiveInferenceInstitute/InstituteOS` (federated via the `.aii` manifest); `references` `docxology/ATLAS` (public reference fork, port origin) |
+| `ecosystem.relations` | Cross-repo relations | `referenced-by` `ActiveInferenceInstitute/InstituteOS` (federated via the `.aii` manifest); `references` `docxology/ATLAS` (public reference fork, port origin), `ActiveInferenceInstitute/Generalized_Notation_Notation` (ecosystem notation for generative models; docs link its pinned integration guides), `ActiveInferenceInstitute/Active_Inference_Ontology` (controlled vocabulary; no identifier mapping), and `ActiveInferenceInstitute/AEOS` (domain ontology; no identifier mapping) |
 | `ecosystem.links` | Curated links | github, website (`https://www.activeinference.org`), docs (`docs/index.md`) |
-| `artifacts` | Declared artifacts | `src/atlas` (code), `tests` (code), `setup.py` (code), `README.md` (doc), `docs/index.md` (doc), `CITATION.cff` (doc) |
+| `artifacts` | Declared artifacts | `src/atlas` (code), `tests` (code), `pyproject.toml` (code), `README.md` (doc), `docs/index.md` (doc), `CITATION.cff` (doc) |
 | `provenance.license` | License | `CC-BY-4.0` |
 | `provenance.citation.text` | Citation string | `Active Inference Institute — ATLAS.` |
 | `provenance.current_release` / `releases_manifest` | Release metadata | none (empty) |

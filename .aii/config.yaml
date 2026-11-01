@@ -3,7 +3,7 @@ schema: aii-sidecar/v1
 
 meta:
   sidecar_version: 1.0.0
-  updated: 2026-08-02
+  updated: 2026-11-01
 
 repo:
   name: ATLAS
@@ -28,6 +28,22 @@ ecosystem:
   - repo: docxology/ATLAS
     relation: references
     note: Public reference fork; the initial implementation was ported from it.
+  - repo: ActiveInferenceInstitute/Generalized_Notation_Notation
+    relation: references
+    note: >-
+      Ecosystem notation for active inference generative models; the docs link
+      its integration guides at the pinned v5.0.3 revision. ATLAS carries no
+      GNN model and no GNN dependency.
+  - repo: ActiveInferenceInstitute/Active_Inference_Ontology
+    relation: references
+    note: >-
+      Controlled vocabulary of active inference concepts; the docs link it.
+      No ATLAS identifier mapping exists.
+  - repo: ActiveInferenceInstitute/AEOS
+    relation: references
+    note: >-
+      Domain ontology for scientific ecosystems; the docs link it. No ATLAS
+      identifier mapping exists.
   links:
     github: https://github.com/ActiveInferenceInstitute/ATLAS
     website: https://www.activeinference.org
@@ -40,9 +56,9 @@ artifacts:
 - path: tests
   kind: code
   description: Test suite.
-- path: setup.py
+- path: pyproject.toml
   kind: code
-  description: Package configuration.
+  description: Package metadata, dependency extras, and pytest configuration.
 - path: README.md
   kind: doc
   description: Repository overview.

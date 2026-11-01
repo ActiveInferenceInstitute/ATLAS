@@ -10,6 +10,7 @@ Documentation index for the ATLAS repository.
 | [Architecture](architecture.md) | Module map and design of the ATLAS package. |
 | [API reference](api.md) | Public API, class by class. |
 | [Usage](usage.md) | Install, quick start, and walkthrough. |
+| [Applied active inference](applied-active-inference.md) | The inquiry loop against the active inference framing: what matches, what does not. |
 | [Metadata reference](metadata.md) | The `.aii` sidecar, field by field, against the InstituteOS schema. |
 | [Quickstart](quickstart.md) | Repository quickstart (clone, inspect, validate, contribute). |
 | [README](../README.md) | Repository overview, license, citation, and links. |
@@ -38,3 +39,10 @@ Documentation index for the ATLAS repository.
 - [Open Source Map](https://activeinference.institute/knowledge/) — public
   registry that classifies ATLAS as a project materials repository
 - [Repository on GitHub](https://github.com/ActiveInferenceInstitute/ATLAS)
+- [GNN](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation) —
+  notation and pipeline for active inference generative models; see the
+  [integration guides](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/tree/8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1/docs/gnn/integration)
+- [Active_Inference_Ontology](https://github.com/ActiveInferenceInstitute/Active_Inference_Ontology) —
+  controlled vocabulary of active inference concepts
+- [AEOS](https://github.com/ActiveInferenceInstitute/AEOS) — Active Entity
+  Ontology for Science

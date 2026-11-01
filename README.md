@@ -31,7 +31,7 @@ classifies ATLAS as a *project materials repository* within the
 
 ## Installation
 
-Python 3.8+:
+Python 3.11+:
 
 ```bash
 git clone https://github.com/ActiveInferenceInstitute/ATLAS.git
@@ -41,7 +41,9 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-Optional visualization support: `pip install -e ".[viz]"`.
+Optional extras: `pip install -e ".[viz]"` (visualization), `.[obsidian]`
+(vault import/export), `.[http]` (HTTP prompt interface), and `.[test]` (test
+suite). `.[all]` installs everything.
 
 ## Quick start
 
@@ -63,9 +65,12 @@ See [docs/usage.md](docs/usage.md) for a full walkthrough.
 ## Tests
 
 ```bash
-pip install -e . pytest pytest-cov
+pip install -e ".[test,viz,obsidian]"
 python -m pytest
 ```
+
+The optional extras are installed so the visualization, Obsidian, and
+memory-instrumentation tests run instead of skipping.
 
 ## Documentation
 
@@ -75,6 +80,8 @@ python -m pytest
 - [Architecture](docs/architecture.md) — module map and design.
 - [API reference](docs/api.md) — public API, class by class.
 - [Usage](docs/usage.md) — install and walkthrough.
+- [Applied active inference](docs/applied-active-inference.md) — where the
+  inquiry loop matches the active inference framing and where it does not.
 - [Metadata reference](docs/metadata.md) — the `.aii` sidecar, field by
   field.
 - [Quickstart](docs/quickstart.md) — repository quickstart.
@@ -86,7 +93,7 @@ python -m pytest
 | `src/atlas/` | The ATLAS package (engine, entities, patterns, queries, interfaces, integrations, visualization, utils). |
 | `tests/` | Test suite (kept green in CI; optional-dependency tests skip without extras). |
 | `examples/` | Runnable examples (basic, advanced). |
-| `setup.py` / `pyproject.toml` | Packaging and pytest configuration. |
+| `pyproject.toml` | Packaging metadata, dependency extras, and pytest configuration. |
 | [README.md](README.md) | This overview. |
 | [AGENTS.md](AGENTS.md) | Working conventions for contributors (human and agent). |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute. |
@@ -143,3 +150,15 @@ Machine-readable citation metadata is available in
 - Active Inference Institute: <https://www.activeinference.org>
 - Open Source Map: <https://activeinference.institute/knowledge/>
 - InstituteOS (federating metadata): <https://github.com/ActiveInferenceInstitute/InstituteOS>
+- GNN — notation and pipeline for specifying, validating, and executing
+  active inference generative models:
+  <https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation>
+  ([integration guides](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/tree/8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1/docs/gnn/integration))
+- Active_Inference_Ontology — controlled vocabulary of active inference
+  concepts: <https://github.com/ActiveInferenceInstitute/Active_Inference_Ontology>
+- AEOS — Active Entity Ontology for Science:
+  <https://github.com/ActiveInferenceInstitute/AEOS>
+
+ATLAS carries no generative-model specification and no ontology mapping; the
+surfaces above own those contracts. See
+[docs/applied-active-inference.md](docs/applied-active-inference.md).

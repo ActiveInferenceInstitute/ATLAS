@@ -21,7 +21,8 @@ cd ATLAS
 | `CITATION.cff` | Machine-readable citation metadata. |
 | `LICENSE` | CC-BY-4.0 license. |
 | `SECURITY.md` | Security reporting. |
-| `docs/` | Documentation index, overview, architecture, API, usage, metadata, quickstart. |
+| `docs/` | Documentation index, overview, architecture, API, usage, applied active inference, metadata, quickstart. |
+| `pyproject.toml` | Packaging metadata, dependency extras, and pytest configuration. |
 | `TO-DO.md` | Scoped improvements and open items. |
 | `.aii/config.yaml` | InstituteOS metadata sidecar. |
 
@@ -30,9 +31,12 @@ cd ATLAS
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e . pytest pytest-cov
+pip install -e ".[test,viz,obsidian]"
 python -m pytest
 ```
+
+The extras install the optional dependencies so no test skips; see
+[docs/usage.md](usage.md) for the full extra list.
 
 See [docs/usage.md](usage.md) for a usage walkthrough.
 
