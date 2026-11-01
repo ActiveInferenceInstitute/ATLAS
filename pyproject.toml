@@ -1,6 +1,84 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-knowledge"
+version = "1.0.0"
+description = "Question-oriented knowledge management over entities, patterns, and typed relationships"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "CC-BY-4.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Active Inference Institute" }]
+keywords = [
+  "knowledge-management",
+  "active-inference",
+  "information-retrieval",
+  "pattern-recognition",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "networkx>=3,<4",
+]
+
+[project.optional-dependencies]
+viz = [
+  "matplotlib>=3.11,<4",
+  "seaborn>=0.13,<1",
+  "pandas>=3,<4",
+  "plotly>=7,<8",
+  "numpy>=2,<3",
+]
+obsidian = ["PyYAML>=6,<7"]
+http = ["requests>=2.34,<3"]
+test = ["pytest>=9,<10", "pytest-cov>=7,<8", "psutil>=7,<8"]
+dev = [
+  "black>=26,<27",
+  "flake8>=7,<8",
+  "mypy>=2,<3",
+  "pytest>=9,<10",
+  "pytest-cov>=7,<8",
+  "psutil>=7,<8",
+]
+all = [
+  "matplotlib>=3.11,<4",
+  "seaborn>=0.13,<1",
+  "pandas>=3,<4",
+  "plotly>=7,<8",
+  "numpy>=2,<3",
+  "PyYAML>=6,<7",
+  "requests>=2.34,<3",
+  "black>=26,<27",
+  "flake8>=7,<8",
+  "mypy>=2,<3",
+  "pytest>=9,<10",
+  "pytest-cov>=7,<8",
+  "psutil>=7,<8",
+]
+
+[project.urls]
+"Bug Reports" = "https://github.com/ActiveInferenceInstitute/ATLAS/issues"
+Source = "https://github.com/ActiveInferenceInstitute/ATLAS"
+Documentation = "https://github.com/ActiveInferenceInstitute/ATLAS/blob/main/docs/index.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+atlas = ["*.md", "*.txt", "*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

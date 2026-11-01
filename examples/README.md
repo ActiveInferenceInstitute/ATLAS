@@ -26,3 +26,9 @@ system.
   or install the package first: `pip install -e .`.
 - The examples import ATLAS through `sys.path` and do not require the
   package to be installed.
+- Without `--output-dir`, the advanced demo writes its generated artifacts
+  (`demo_*.png`, `demo_*.gif`, `demo_*.html`, `demo_*.json`, `animations/`,
+  `visualization_summary.json`) to the current directory. Those paths are
+  listed in `.gitignore`, so a run from the repository root does not leave
+  committable files behind. Pass `--output-dir DIR` to collect them
+  elsewhere.
