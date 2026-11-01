@@ -464,6 +464,7 @@ class TestMemoryUsage:
             import gc
 
             process = psutil.Process()
+            gc.collect()
             initial_memory = process.memory_info().rss / 1024 / 1024  # MB
         except ImportError:
             pytest.skip("psutil not available for memory testing")
