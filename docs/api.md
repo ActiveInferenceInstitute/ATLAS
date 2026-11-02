@@ -91,6 +91,8 @@ Factories: `create_identity_interface(interface_id=None)`,
 
 `ObsidianNote`, `ObsidianVault`, `ObsidianParser`, `ObsidianIntegration`,
 `ATLASJSONEncoder` — parse and convert Obsidian vault content.
+`ObsidianParser.parse_vault` loads `Templates/*.md` into `vault.templates`
+and excludes them from `vault.notes`.
 
 ## `utils.helpers`
 
@@ -103,6 +105,6 @@ Factories: `create_identity_interface(interface_id=None)`,
 Run the test suite from the repository root:
 
 ```bash
-pip install -e . pytest pytest-cov
+pip install -e ".[test,viz,obsidian]"
 python -m pytest
 ```

@@ -4,7 +4,8 @@ How to install and use the ATLAS knowledge management system.
 
 ## Installation
 
-ATLAS requires Python 3.8+ and uses a `src/` layout with `setup.py`:
+ATLAS requires Python 3.11+ and uses a `src/` layout with packaging metadata
+in `pyproject.toml`:
 
 ```bash
 git clone https://github.com/ActiveInferenceInstitute/ATLAS.git
@@ -14,11 +15,19 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-Optional: visualization support (`matplotlib`, `seaborn`, `pandas`,
-`plotly`):
+Optional extras:
+
+| Extra | Adds | For |
+| --- | --- | --- |
+| `viz` | `matplotlib`, `seaborn`, `pandas`, `plotly`, `numpy` | `atlas.visualization` |
+| `obsidian` | `PyYAML` | `atlas.integrations.obsidian` |
+| `http` | `requests` | `HTTPPromptInterface` |
+| `test` | `pytest`, `pytest-cov`, `psutil` | the test suite |
+| `dev` | `black`, `flake8`, `mypy`, and the test tooling | contributors |
 
 ```bash
 pip install -e ".[viz]"
+pip install -e ".[test,viz,obsidian]"   # full suite, nothing skipped
 ```
 
 ## Quick start
@@ -100,12 +109,11 @@ graphml = engine.export_graph(format="graphml")  # or "gexf" / "json"
 ## Running the tests
 
 ```bash
-pip install -e . pytest pytest-cov
+pip install -e ".[test,viz,obsidian]"
 python -m pytest
 ```
 
-The suite is kept green in CI; optional-dependency tests are skipped when
-their extras are not installed.
+The suite is kept green in CI; with those extras installed no test skips.
 
 ## Examples
 

@@ -37,6 +37,16 @@ documentation passes and the code port on 2026-08-02 (see
 - **InstituteOS federation.** The repository carries an InstituteOS metadata
   sidecar, and the sidecar declares that ATLAS is federated through the
   InstituteOS `.aii` manifest.[3]
+- **Related repositories.** The Institute's notation and pipeline for
+  specifying, validating, rendering, and executing generative models is
+  [GNN](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation);[5]
+  the shared controlled vocabulary is
+  [Active_Inference_Ontology](https://github.com/ActiveInferenceInstitute/Active_Inference_Ontology);[6]
+  the ontology of scientific entities, roles, and interaction motifs is
+  [AEOS](https://github.com/ActiveInferenceInstitute/AEOS).[7] ATLAS is the
+  discovery layer over knowledge items: it carries no generative-model
+  specification and no ontology mapping. See
+  [applied-active-inference.md](applied-active-inference.md).
 - **Reference implementation and port.** A public fork of this repository
   ([docxology/ATLAS](https://github.com/docxology/ATLAS)) contained an
   "ATLAS Knowledge Management System" implementation, described there as "a
@@ -69,3 +79,6 @@ statement for ATLAS.
 [2] https://activeinference.institute/directory — Directory — Active Inference Institute
 [3] https://github.com/ActiveInferenceInstitute/InstituteOS/blob/main/docs/reference/modules/platform/aii_sidecar.md — InstituteOS — aii_sidecar schema documentation
 [4] https://github.com/docxology/ATLAS — docxology/ATLAS — public fork (reference implementation)
+[5] https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation — Generalized_Notation_Notation (GNN)
+[6] https://github.com/ActiveInferenceInstitute/Active_Inference_Ontology — Active_Inference_Ontology
+[7] https://github.com/ActiveInferenceInstitute/AEOS — Active Entity Ontology for Science (AEOS)

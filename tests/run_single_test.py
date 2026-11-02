@@ -9,7 +9,7 @@ import os
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-def test_basic_functionality():
+def run_basic_functionality():
     """Test basic ATLAS functionality."""
     print("🧪 Testing Basic ATLAS Functionality")
     print("-" * 40)
@@ -50,7 +50,7 @@ def test_basic_functionality():
         traceback.print_exc()
         return False
 
-def test_comprehensive_class():
+def run_comprehensive_class():
     """Test the comprehensive test class."""
     print("\n🧪 Testing Comprehensive Test Class")
     print("-" * 40)
@@ -88,11 +88,11 @@ def main():
     total_tests = 2
 
     # Test basic functionality
-    if test_basic_functionality():
+    if run_basic_functionality():
         success_count += 1
 
     # Test comprehensive class
-    if test_comprehensive_class():
+    if run_comprehensive_class():
         success_count += 1
 
     print("\n" + "=" * 50)

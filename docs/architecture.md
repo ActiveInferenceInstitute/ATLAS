@@ -70,6 +70,8 @@ engine:
 
 ## Dependencies
 
-Core: `networkx`, `numpy`, `python-dateutil`. Optional: visualization
-extras (`matplotlib`, `seaborn`, `pandas`, `plotly`). See
-[`setup.py`](../setup.py) and [`pyproject.toml`](../pyproject.toml).
+Core: `networkx`. Optional extras, all declared in
+[`pyproject.toml`](../pyproject.toml): `viz` (`matplotlib`, `seaborn`,
+`pandas`, `plotly`, `numpy`), `obsidian` (`PyYAML`), `http` (`requests`),
+`test` (`pytest`, `pytest-cov`, `psutil`), and `dev` (`black`, `flake8`,
+`mypy`, plus the test tooling).

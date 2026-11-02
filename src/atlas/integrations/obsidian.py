@@ -168,10 +168,13 @@ class ObsidianParser:
             root_path=vault_path
         )
 
+        # Vault templates are collected separately below, never as notes.
+        templates_dir = vault_path / 'Templates'
+
         # Find and parse markdown files
         for md_file in vault_path.rglob('*.md'):
-            # Skip system files and hidden files
-            if md_file.name.startswith('.'):
+            # Skip system files, hidden files, and vault templates
+            if md_file.name.startswith('.') or templates_dir in md_file.parents:
                 continue
 
             try:
@@ -190,7 +193,6 @@ class ObsidianParser:
                 vault.attachments.add(file_path)
 
         # Load templates if they exist
-        templates_dir = vault_path / 'Templates'
         if templates_dir.exists():
             for template_file in templates_dir.glob('*.md'):
                 try:
