@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 
+from .common import NETWORK_COLORS
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,12 +37,7 @@ class NetworkVisualizer:
         self.atlas_engine = atlas_engine
 
         # Color schemes for different network analysis
-        self.network_colors = {
-            'community': plt.cm.Set3,
-            'centrality': plt.cm.viridis,
-            'degree': plt.cm.plasma,
-            'clustering': plt.cm.coolwarm
-        }
+        self.network_colors = NETWORK_COLORS
 
         logger.info("NetworkVisualizer initialized")
 
