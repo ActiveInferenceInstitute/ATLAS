@@ -14,6 +14,8 @@ import numpy as np
 import seaborn as sns
 from datetime import datetime, timedelta
 
+from .common import METRIC_COLORS
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,13 +37,7 @@ class MetricsVisualizer:
         self.atlas_engine = atlas_engine
 
         # Color schemes for different metric types
-        self.metric_colors = {
-            'performance': '#3498db',    # Blue
-            'usage': '#2ecc71',         # Green
-            'quality': '#e74c3c',       # Red
-            'growth': '#f39c12',        # Orange
-            'efficiency': '#9b59b6'     # Purple
-        }
+        self.metric_colors = METRIC_COLORS
 
         logger.info("MetricsVisualizer initialized")
 
