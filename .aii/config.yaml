@@ -1,54 +1,40 @@
-# AII sidecar — InstituteOS metadata. Schema: instituteos.platform.aii_sidecar.models.AiiSidecar (aii-sidecar/v1)
-schema: aii-sidecar/v1
-
+# AII sidecar — InstituteOS metadata. Schema: aii_platform.aii_sidecar
 meta:
-  sidecar_version: 1.0.0
-  updated: 2026-11-01
-
+  sidecar_version: 1.2.1
+  updated: '2026-11-10'
 repo:
   name: ATLAS
   slug: atlas
   full_name: ActiveInferenceInstitute/ATLAS
-  description: Knowledge management system and project materials repository of the Active Inference Institute.
-  default_branch: main
+  description: Knowledge management system and project materials repository of the
+    Active Inference Institute.
   homepage: https://github.com/ActiveInferenceInstitute/ATLAS
-
 institute:
-  affiliation: institute
   category: research
-  status: active
   maturity: released
   steward: Active Inference Institute
-
 ecosystem:
   relations:
   - repo: ActiveInferenceInstitute/InstituteOS
     relation: referenced-by
     note: Federated via the InstituteOS .aii manifest.
   - repo: docxology/ATLAS
-    relation: references
     note: Public reference fork; the initial implementation was ported from it.
   - repo: ActiveInferenceInstitute/Generalized_Notation_Notation
-    relation: references
-    note: >-
-      Ecosystem notation for active inference generative models; the docs link
-      its integration guides at the pinned v5.0.3 revision. ATLAS carries no
-      GNN model and no GNN dependency.
+    note: Ecosystem notation for active inference generative models; the docs link
+      its integration guides at the pinned v5.0.3 revision. ATLAS carries no GNN model
+      and no GNN dependency.
   - repo: ActiveInferenceInstitute/Active_Inference_Ontology
-    relation: references
-    note: >-
-      Controlled vocabulary of active inference concepts; the docs link it.
-      No ATLAS identifier mapping exists.
+    note: Controlled vocabulary of active inference concepts; the docs link it. No
+      ATLAS identifier mapping exists.
   - repo: ActiveInferenceInstitute/AEOS
-    relation: references
-    note: >-
-      Domain ontology for scientific ecosystems; the docs link it. No ATLAS
-      identifier mapping exists.
+    note: Domain ontology for scientific ecosystems; the docs link it. No ATLAS identifier
+      mapping exists.
   links:
     github: https://github.com/ActiveInferenceInstitute/ATLAS
     website: https://www.activeinference.org
     docs: docs/index.md
-
+    homepage: https://github.com/ActiveInferenceInstitute/ATLAS
 artifacts:
 - path: src/atlas
   kind: code
@@ -68,32 +54,35 @@ artifacts:
 - path: CITATION.cff
   kind: doc
   description: Machine-readable citation metadata.
-
+- path: AGENTS.md
+  kind: doc
+  description: Agent guidance.
+- path: LICENSE
+  kind: doc
+  description: License.
+- path: src
+  kind: code
+  description: Source tree.
+- path: docs
+  kind: doc
+  description: Documentation tree.
 provenance:
   license: CC-BY-4.0
   citation:
     text: Active Inference Institute — ATLAS.
-  current_release: ""
-  releases_manifest: ""
-
 instituteos:
-  dashboard_mode: repos
-  registries: []
   tags:
   - atlas
   - knowledge-management
   - python
-
 capabilities:
 - python
 - knowledge-management
 - documentation
-
-integration:
-  analytics: false
-  dashboard: false
-  sync: pull
-
+- python-package
+- tested
+- ci
+- citation
 tasks:
   inventory:
     cmd: git ls-files
@@ -107,6 +96,13 @@ tasks:
   test:
     cmd: python -m pytest
     description: Run the test suite.
-
+integration:
+  analytics: false
+  dashboard: false
 docs:
-  - docs/README.md
+- docs/README.md
+- README.md
+- AGENTS.md
+- docs/INTEGRATION.md
+- docs/AGENTS.md
+schema: aii-sidecar/v1
