@@ -15,5 +15,5 @@ For this repository:
 Validate the sidecar with the InstituteOS CLI:
 
 ```bash
-python -m instituteos.platform.aii_sidecar.validate .
+python -m aii_platform.aii_sidecar.validate . --completeness
 ```

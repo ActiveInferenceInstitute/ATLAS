@@ -44,7 +44,7 @@ Institute repositories without touching this project's own content. The schema i
 | Task | Command | Working directory | Description |
 | --- | --- | --- | --- |
 | `inventory` | `git ls-files` | `.` | List tracked files. |
-| `validate` | `python -m instituteos.platform.aii_sidecar.validate .` | `.` | Validate this sidecar against the aii-sidecar/v1 schema. |
+| `validate` | `python -m aii_platform.aii_sidecar.validate . --completeness` | `.` | Validate this sidecar against the aii-sidecar/v1 schema. |
 | `qa` | `python3 scripts/docs_qa.py` | `.` | Run the documentation QA gate (whitespace, links, YAML). |
 | `test` | `python -m pytest` | `.` | Run the test suite. |
 
