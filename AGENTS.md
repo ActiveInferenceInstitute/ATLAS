@@ -26,6 +26,8 @@ its tests, examples, documentation, and InstituteOS metadata.
   dependency extras, pytest configuration).
 - `README.md` — entry point and index; `docs/` — guides (index, overview,
   architecture, API, usage, applied active inference, metadata, quickstart).
+  Each code folder carries a `README.md`: `src/README.md`, `tests/README.md`,
+  and `docs/README.md`.
 - `TO-DO.md` — scoped improvements; update it when you complete or add work.
 - `REVIEW_LOG_*.md` — audit trail for documentation/implementation passes.
 - `.aii/config.yaml` — InstituteOS metadata sidecar (schema: `aii-sidecar/v1`).

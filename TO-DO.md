@@ -99,6 +99,17 @@ items are listed at the end.
 
 ## Open / deferred
 
+- GNN conformance warning sentinel. The pinned `gnn conformance (pinned)` job
+  ([`.github/GNN.md`](.github/GNN.md),
+  [`.github/workflows/tests.yml`](.github/workflows/tests.yml)) treats the
+  return value of `GNNTypeChecker().validate_gnn_files(...)` as a boolean
+  (`if not ...: raise`). The upstream checker returns the integer `2` to signal
+  warnings, and `2` is truthy in Python, so a warning-only result is
+  indistinguishable from a clean pass. This is upstream behavior in the pinned
+  `Generalized_Notation_Notation` revision
+  `8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1` (v5.0.3); do not change the pin to
+  "fix" it. Track it upstream and, if a stricter check is wanted, compare the
+  return value explicitly (`!= 0`) rather than relying on truthiness.
 - GitHub repository description and topics: verified 2026-11-01 with
   `gh api repos/ActiveInferenceInstitute/ATLAS` that the description reads
   "Adaptive Thinking and Learning Architecture System: a question-oriented

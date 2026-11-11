@@ -14,6 +14,31 @@ classifies ATLAS as a *project materials repository* within the
 *open-source projects* family. For context, see
 [docs/overview.md](docs/overview.md).
 
+## Contents
+
+- [Status](#status)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Tests](#tests)
+- [Documentation](#documentation)
+- [Repository layout](#repository-layout)
+- [Quality gate](#quality-gate)
+- [Provenance](#provenance)
+- [License](#license)
+- [Citation](#citation)
+- [Links](#links)
+
+## Status
+
+Active, released as v1.0.0. The core engine, entities, patterns, queries, and
+interfaces run locally and offline with only `networkx` installed. The optional
+`viz`, `obsidian`, and `http` extras add visualization, vault import/export, and
+an HTTP client; the tests that use them skip when the extra is absent. The GNN
+conformance workflow downloads the pinned parser at CI time and is not
+reproducible offline. See [`TO-DO.md`](TO-DO.md) for the known warning-sentinel
+caveat in that workflow and the open optional items.
+
 ## Features
 
 - **Entities and attributes** — knowledge items with typed attributes,
@@ -85,6 +110,9 @@ memory-instrumentation tests run instead of skipping.
 - [Metadata reference](docs/metadata.md) — the `.aii` sidecar, field by
   field.
 - [Quickstart](docs/quickstart.md) — repository quickstart.
+- [docs/README.md](docs/README.md), [src/README.md](src/README.md), and
+  [tests/README.md](tests/README.md) — folder guides for the documentation,
+  package, and test trees.
 
 ## Repository layout
 
