@@ -49,9 +49,17 @@ The receipt printed on success is JSON:
 "result"}`, where `source` is `repository` or `pinned-exemplar` and
 `install-commit` is the provenance-verified commit of the parser actually used.
 
-## Known caveat
+## Result contract
 
-The pinned type checker returns the integer `2` for a warnings-only result and
-`2` is truthy, so a warnings-only run is indistinguishable from a clean pass.
-This is upstream behaviour at the pinned revision; `TO-DO.md` tracks it. Do not
-change the pin to work around it.
+`GNNTypeChecker.validate_gnn_files` returns the pipeline exit sentinel, not a
+boolean: `True` (exit 0) when every file validates, `2`
+(`SUCCESS_WITH_WARNINGS`) when the run completed but one or more files had
+type/consistency problems **or no GNN file was found**, and `False` (exit 1) on
+a hard failure. The integer `2` is truthy, so the check requires a literal
+`True`: any other result is refused with the returned value quoted in the
+error, e.g. `validate_gnn_files returned 2 (True alone is a clean pass)`.
+
+This is a local comparison over upstream behaviour at the pinned revision; the
+pin is never changed to make a check pass. That `2` conflates "warnings" with
+"invalid file" and "nothing to do" is upstream behaviour tracked in `TO-DO.md`.
+The regression cases are in [`../tests/test_gnn_conformance.py`](../tests/test_gnn_conformance.py).

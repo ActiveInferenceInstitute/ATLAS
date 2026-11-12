@@ -181,11 +181,17 @@ def check_model(
         model_dir = pathlib.Path(output_dir) / "models"
         model_dir.mkdir()
         shutil.copy2(model, model_dir / model.name)
-        # The pinned type checker returns 2 for warnings; only a falsy result is
-        # treated as clean. This matches the historical CI behaviour and the
-        # known caveat recorded in TO-DO.md.
-        if not GNNTypeChecker().validate_gnn_files(model_dir, pathlib.Path(output_dir)):
-            raise ConformanceError(f"GNN type checker rejected {model.name}")
+        # ``validate_gnn_files`` returns the pipeline exit sentinel, not a
+        # boolean: ``True`` (exit 0), ``2`` (SUCCESS_WITH_WARNINGS — one or more
+        # files had type/consistency problems, or no GNN file was found), and
+        # ``False`` (exit 1). Only a literal ``True`` is a clean pass: ``2`` is
+        # truthy, so a truthiness test would report an invalid model as verified.
+        result = GNNTypeChecker().validate_gnn_files(model_dir, pathlib.Path(output_dir))
+        if result is not True:
+            raise ConformanceError(
+                f"GNN type checker rejected {model.name}: "
+                f"validate_gnn_files returned {result!r} (True alone is a clean pass)"
+            )
 
 
 def main(argv: list[str] | None = None) -> int:
