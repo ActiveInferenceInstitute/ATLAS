@@ -11,7 +11,7 @@ the exact command it runs; this page describes what each one covers.
 | --- | --- | --- |
 | `setup` | Installs the one environment the other arms share (`-e .[dev,viz,obsidian]`). | yes, first run |
 | `lint` | `flake8` over `src`, `tests`, `scripts`, using the committed `.flake8`. | no |
-| `docs` | `scripts/docs_qa.py` (whitespace, links/anchors, YAML, Publishing artifact digests) and the generated-page check. | no |
+| `docs` | `scripts/docs_qa.py` (whitespace, links, same-file/cross-file heading anchors, YAML, Publishing artifact digests) and the generated-page check. | no |
 | `fast` | The test suite without the `slow` marker. | no |
 | `test` | The full test suite. | no |
 | `gnn` | Pinned GNN conformance against `.github/gnn-pin.json`. | yes |

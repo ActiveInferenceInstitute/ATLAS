@@ -13,8 +13,8 @@ so treat small differences between runs as noise.
 
 | Field | Value |
 | --- | --- |
-| Measured at (UTC) | 2026-11-12 13:07 |
-| Recorded against commit | `f3bd0b4` plus the working tree at measurement |
+| Measured at (UTC) | 2026-11-12 14:39 |
+| Recorded against commit | `f8a2677` plus the working tree at measurement |
 | Host | Darwin 27.0.0 (arm64) |
 | Python | 3.13.11 (`./.venv/bin/python`) |
 | pytest | 9.2.0 |
@@ -25,11 +25,13 @@ so treat small differences between runs as noise.
 | Arm | Wall time (s) | Result | Command (as resolved on the measuring host) |
 | --- | --- | --- | --- |
 | `setup` | not measured | run outside this page | `.venv/bin/python -m pip install --disable-pip-version-check -e '.[dev,viz,obsidian]'` |
-| `lint` | 0.91 | ok | `.venv/bin/python -m flake8 src tests scripts` |
-| `docs` | 0.42 | ok | `.venv/bin/python scripts/docs_qa.py && .venv/bin/python scripts/gate_metrics.py --check` |
-| `fast` | 4.59 | ok | `.venv/bin/python -m pytest -m 'not slow'` |
-| `test` | 5.27 | ok | `.venv/bin/python -m pytest` |
-| `gnn` | 2.96 | ok | `.venv/bin/python scripts/gnn_conformance.py` |
+| `lint` | 0.35 | ok | `.venv/bin/python -m flake8 src tests scripts` |
+| `docs` | 0.57 | ok | `.venv/bin/python scripts/docs_qa.py && .venv/bin/python scripts/gate_metrics.py --check` |
+| `fast` | 2.82 | ok | `.venv/bin/python -m pytest -m 'not slow'` |
+| `test` | 2.36 | ok | `.venv/bin/python -m pytest` |
+| `gnn` | not measured | run outside this page | `.venv/bin/python scripts/gnn_conformance.py` |
+| `all` | not measured | run outside this page | `.venv/bin/python -m flake8 src tests scripts && .venv/bin/python scripts/docs_qa.py && .venv/bin/python scripts/gate_metrics.py --check && .venv/bin/python -m pytest` |
+| `measure` | not measured | run outside this page | `.venv/bin/python scripts/gate_metrics.py` |
 
 `setup` is an install step rather than a check, so its duration depends on
 the local wheel cache and is not recorded here. `gnn` needs network access to
@@ -40,13 +42,13 @@ job, and `./gate measure --include-gnn` records it when a network is available.
 
 | Arm | Reported by pytest |
 | --- | --- |
-| `fast` | 86 passed, 10 warnings |
-| `test` | 97 passed, 10 warnings |
+| `fast` | 96 passed, 10 warnings |
+| `test` | 107 passed, 10 warnings |
 
 ## Not gated
 
 `./gate lint` selects only fatal-error codes (`.flake8`). Under flake8's full
-default selection the tree currently reports: 1154 findings (top codes — E501: 737, E128: 144, F401: 87, E402: 51, W292: 39, E226: 28).
+default selection the tree currently reports: 1206 findings (top codes — E501: 789, E128: 144, F401: 87, E402: 51, W292: 39, E226: 28).
 That debt is tracked in [TO-DO.md](../../TO-DO.md) and is not a gate failure.
 
 ## Verification

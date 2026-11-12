@@ -13,6 +13,13 @@ Scope definitions:
 Completed items are marked ✓ with the implementing commit. Open / deferred
 items are listed at the end.
 
+## Gate audit fixes (2026-11-12)
+
+- [x] Correct the docs QA script's CI reference to `.github/workflows/gate.yml`.
+- [x] Include the supported `all` and `measure` arms in `./gate --list`.
+- [x] Check heading fragments in linked markdown files, not just the source file;
+      add regression coverage for missing and valid cross-file anchors.
+
 ## Publishing member migration (2026-11-12)
 
 - [x] Record the documented gate arms and Publishing member facts in the sidecar.

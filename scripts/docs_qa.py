@@ -6,12 +6,12 @@ parser, preinstalled on macOS and on GitHub-hosted Ubuntu runners):
 
 1. No trailing whitespace in tracked markdown, YAML, and CFF files.
 2. Every relative link in markdown files resolves to an existing path, and
-   every in-file anchor fragment resolves to a heading.
+   every heading fragment in a markdown target resolves to a heading.
 3. .aii/config.yaml and CITATION.cff parse as YAML.
 4. Pinned Publishing artifacts match the canonical recorded digests.
 
 Exit code is non-zero on any failure, so the script can be used as a CI gate
-(.github/workflows/docs-qa.yml) and as a local pre-commit check. See
+(.github/workflows/gate.yml) and as a local pre-commit check. See
 AGENTS.md for repository conventions.
 """
 
@@ -48,21 +48,24 @@ def check_links(files: list[pathlib.Path], errors: list[str]) -> None:
         if f.suffix != ".md":
             continue
         text = f.read_text(encoding="utf-8")
-        headings = {
-            re.sub(r"[^a-z0-9 -]", "", h.lower()).replace(" ", "-")
-            for h in re.findall(r"^#{1,6}\s+(.*)$", text, re.M)
-        }
         for m in re.finditer(r"\[[^\]]*\]\(([^)]+)\)", text):
             target = m.group(1).strip()
             if target.startswith(("http://", "https://", "mailto:", "data:")):
                 continue
             path_part, _, frag = target.partition("#")
-            if not path_part:
-                if frag and frag not in headings:
-                    errors.append(f"{f.relative_to(ROOT)}: broken anchor #{frag}")
-                continue
-            if not (f.parent / path_part).resolve().exists():
+            destination = (f.parent / path_part).resolve() if path_part else f
+            if not destination.exists():
                 errors.append(f"{f.relative_to(ROOT)}: broken link {target!r}")
+                continue
+            if frag and destination.suffix == ".md":
+                linked_text = text if not path_part else destination.read_text(encoding="utf-8")
+                headings = {
+                    re.sub(r"[^a-z0-9 -]", "", h.lower()).replace(" ", "-")
+                    for h in re.findall(r"^#{1,6}\s+(.*)$", linked_text, re.M)
+                }
+                if frag not in headings:
+                    anchor = repr(target) if path_part else f"#{frag}"
+                    errors.append(f"{f.relative_to(ROOT)}: broken anchor {anchor}")
 
 
 def check_yaml(files: list[pathlib.Path], errors: list[str]) -> None:
