@@ -1,7 +1,8 @@
 # ATLAS — Documentation To-Do
 
-Last reviewed: 2026-11-12 (seventh pass: sidecar documentation paths resolved
-relative to `.aii/`, plus the landing commit for each 2026-11-12 pass).
+Last reviewed: 2026-11-12 (eighth pass: the `gnn` arm's result handling is
+fail-closed; seventh pass: sidecar documentation paths resolved relative to
+`.aii/`, plus the landing commit for each 2026-11-12 pass).
 
 Scope definitions:
 
@@ -12,6 +13,19 @@ Scope definitions:
 
 Completed items are marked ✓ with the implementing commit. Open / deferred
 items are listed at the end.
+
+## GNN result fail-closed (2026-11-12, PR #14)
+
+Landed in PR #14; the regression cases live in `tests/test_gnn_conformance.py`.
+
+- [x] **The `gnn` arm judged the checker by truthiness.** `if not
+      GNNTypeChecker().validate_gnn_files(...): raise` treated the upstream
+      sentinel `2` (`SUCCESS_WITH_WARNINGS` — one or more files invalid **or**
+      no GNN file found) as a clean pass, so an invalid sketch printed
+      `"result": "verified"` and exited 0. The arm now requires literal `True`
+      and quotes the returned value on refusal; `.github/GNN.md` and
+      `docs/gate.md` record the three-outcome contract instead of the old
+      caveat. Pin unchanged (v5.0.3).
 
 ## Gate audit fixes (2026-11-12, PR #11)
 
@@ -166,21 +180,12 @@ Landed in `0754b63`.
   decision and an annotation pass first; see [`docs/gate.md`](docs/gate.md).
   Owner: the repository owner (mypy strictness baseline); blocked on that
   decision, not on tooling — `mypy` is already installed by `./gate setup`.
-- GNN conformance warning sentinel. The pinned `gnn conformance (pinned)` job
-  ([`.github/GNN.md`](.github/GNN.md),
-  [`.github/workflows/gate.yml`](.github/workflows/gate.yml),
-  [`scripts/gnn_conformance.py`](scripts/gnn_conformance.py)) treats the
-  return value of `GNNTypeChecker().validate_gnn_files(...)` as a boolean
-  (`if not ...: raise`). The upstream checker returns the integer `2` to signal
-  warnings, and `2` is truthy in Python, so a warning-only result is
-  indistinguishable from a clean pass. This is upstream behavior in the pinned
-  `Generalized_Notation_Notation` revision
-  `8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1` (v5.0.3); do not change the pin to
-  "fix" it. Track it upstream and, if a stricter check is wanted, compare the
-  return value explicitly (`!= 0`) rather than relying on truthiness. Owner:
-  the upstream GNN maintainers; ATLAS can only choose the stricter local
-  comparison, which it has not done because the pinned revision is the
-  conformance target.
+- GNN sentinel semantics upstream. The pinned `validate_gnn_files`
+  ([`scripts/gnn_conformance.py`](scripts/gnn_conformance.py)) returns `2` both
+  for "some files invalid" and for "no GNN file found". ATLAS now requires
+  literal `True`, so both are refused (see the 2026-11-12 pass above); having
+  the checker distinguish the two is the upstream maintainers' call. Do not
+  change the pin to work around it.
 - GNN revision drift. `.github/gnn-pin.json` pins v5.0.3
   (`8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1`, confirmed 2026-11-12 against
   `git ls-remote --tags`), while the estate importer repositories moved to
