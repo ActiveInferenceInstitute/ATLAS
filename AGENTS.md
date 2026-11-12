@@ -52,7 +52,9 @@ The same gates run as CI (`.github/workflows/docs-qa.yml` and
 relative links and in-file anchors in markdown, and YAML parseability of
 `.aii/config.yaml` and `CITATION.cff`. The test suite must stay green; with
 the extras above no test skips, and optional-dependency tests skip only when
-their extra is absent.
+their extra is absent. `tests.yml` also runs the pinned GNN conformance baseline
+(see `.github/GNN.md`); ATLAS defines no `.gnn.md` model file, so the job validates
+the pinned upstream exemplar.
 
 ## Code conventions
 
