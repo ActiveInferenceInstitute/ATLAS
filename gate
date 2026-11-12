@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# ATLAS gate - the single documented entry point for every check in this
+# repository. CI runs these exact arms; no command is written twice.
+#
+#   ./gate setup    install the one environment the other arms use
+#   ./gate lint     flake8 (fatal-error codes, see .flake8)
+#   ./gate docs     documentation QA gate + generated-doc freshness
+#   ./gate fast     test suite without the slow (performance) marker
+#   ./gate test     full test suite
+#   ./gate gnn      pinned GNN conformance (needs network)
+#   ./gate all      lint, docs, test (offline-safe; gnn excluded)
+#   ./gate measure  re-measure the arms into docs/_generated/GATE.md
+#
+# With no argument the fast arm runs: the quick developer loop.
+# PYTHON overrides the interpreter; otherwise .venv/bin/python is used when
+# present, else python3. See docs/gate.md.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+PY=${PYTHON:-}
+if [ -z "$PY" ]; then
+  if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python3; fi
+fi
+
+ARMS="setup lint docs fast test gnn"
+
+arm_command() {
+  case "$1" in
+    setup) printf '%s\n' "$PY -m pip install --disable-pip-version-check -e '.[dev,viz,obsidian]'" ;;
+    lint)  printf '%s\n' "$PY -m flake8 src tests scripts" ;;
+    docs)  printf '%s\n' "$PY scripts/docs_qa.py && $PY scripts/gate_metrics.py --check" ;;
+    fast)  printf '%s\n' "$PY -m pytest -m 'not slow'" ;;
+    test)  printf '%s\n' "$PY -m pytest" ;;
+    gnn)   printf '%s\n' "$PY scripts/gnn_conformance.py" ;;
+    measure) printf '%s\n' "$PY scripts/gate_metrics.py" ;;
+    *)     return 1 ;;
+  esac
+}
+
+run_arm() {
+  local arm=$1 cmd start
+  shift
+  cmd=$(arm_command "$arm") || { printf 'unknown arm: %s\n' "$arm" >&2; return 2; }
+  if [ "$#" -gt 0 ]; then cmd="$cmd $*"; fi
+  start=$SECONDS
+  printf '==> %s: %s\n' "$arm" "$cmd"
+  bash -c "$cmd"
+  printf '<== %s ok (%ss)\n\n' "$arm" "$((SECONDS - start))"
+}
+
+usage() {
+  awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}"
+  printf 'resolved interpreter: %s\n' "$PY"
+}
+
+case "${1:-}" in
+  -h|--help|help) usage ;;
+  --list)
+    for arm in $ARMS; do printf '%s\t%s\n' "$arm" "$(arm_command "$arm")"; done
+    ;;
+  "")
+    run_arm fast
+    printf 'tip: ./gate all runs lint, docs, and the full suite\n'
+    ;;
+  all)
+    for arm in lint docs test; do run_arm "$arm"; done
+    ;;
+  measure)
+    shift
+    run_arm measure "$@"
+    ;;
+  *)
+    for arm in "$@"; do run_arm "$arm"; done
+    ;;
+esac

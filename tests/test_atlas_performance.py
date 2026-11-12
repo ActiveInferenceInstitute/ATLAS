@@ -30,6 +30,10 @@ from atlas.patterns.pattern_engine import PatternEngine
 from atlas.queries.iquery import iQuery, QueryPriority
 from atlas.utils.helpers import generate_id
 
+# Bounded load and timing checks; deselected by the default `./gate fast` arm
+# (`-m "not slow"`) and run by `./gate test`.
+pytestmark = pytest.mark.slow
+
 
 class TestATLASPerformance:
     """Performance testing suite for ATLAS core operations."""
