@@ -55,7 +55,7 @@ Install the one environment, then run the gate and fix anything it reports:
 [`docs/gate.md`](docs/gate.md). Every arm runs from `./gate` and CI
 (`.github/workflows/gate.yml`) calls the same arms — never add a second copy of
 a command to a workflow or a doc. The docs arm checks trailing whitespace,
-relative links and in-file anchors in markdown, and YAML parseability of
+relative links and same-file/cross-file heading anchors in markdown, and YAML parseability of
 `.aii/config.yaml` and `CITATION.cff`, then checks that
 `docs/_generated/GATE.md` still matches the gate's arm list. The test suite must
 stay green; the setup step installs the optional extras, so no test skips. The

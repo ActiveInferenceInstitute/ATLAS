@@ -22,7 +22,7 @@ if [ -z "$PY" ]; then
   if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python3; fi
 fi
 
-ARMS="setup lint docs fast test gnn"
+ARMS="setup lint docs fast test gnn all measure"
 
 arm_command() {
   case "$1" in
@@ -32,6 +32,7 @@ arm_command() {
     fast)  printf '%s\n' "$PY -m pytest -m 'not slow'" ;;
     test)  printf '%s\n' "$PY -m pytest" ;;
     gnn)   printf '%s\n' "$PY scripts/gnn_conformance.py" ;;
+    all)   printf '%s && %s && %s\n' "$(arm_command lint)" "$(arm_command docs)" "$(arm_command test)" ;;
     measure) printf '%s\n' "$PY scripts/gate_metrics.py" ;;
     *)     return 1 ;;
   esac
