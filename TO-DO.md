@@ -13,6 +13,14 @@ Scope definitions:
 Completed items are marked ✓ with the implementing commit. Open / deferred
 items are listed at the end.
 
+## Publishing member migration (2026-11-12)
+
+- [x] Record the documented gate arms and Publishing member facts in the sidecar.
+- [x] Point to the lead contract rather than redefine record identity; pin its
+      schema and checker, plus the shared GNN pin, by digest.
+- [x] Check the pinned copies from the existing docs arm while retaining the
+      member checks already proving gate, documentation, measurement, and GNN behavior.
+
 ## Sixth pass (2026-11-12)
 
 - [x] **One gate entry point.** `./gate` runs every check as a separate arm

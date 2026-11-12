@@ -28,6 +28,7 @@ tree is for and how to verify it — is [`README.md`](README.md).
 | [`metadata.md`](metadata.md) | The `.aii` sidecar, field by field, against the InstituteOS schema. |
 | [`quickstart.md`](quickstart.md) | Repository quickstart (clone, inspect, validate, contribute). |
 | [`gate.md`](gate.md) | The gate: arms, CI mapping, and how to refresh the measured page. |
+| [`workflows/publishing.md`](workflows/publishing.md) | ATLAS's Publishing contract pointer, member facts, and pinned artifact digests. |
 
 ## Gate and CI
 
@@ -41,6 +42,8 @@ tree is for and how to verify it — is [`README.md`](README.md).
 | [`../scripts/docs_qa.py`](../scripts/docs_qa.py) | Documentation QA gate (whitespace, links/anchors, YAML). |
 | [`../scripts/gnn_conformance.py`](../scripts/gnn_conformance.py) | The pinned GNN conformance check. |
 | [`../scripts/gate_metrics.py`](../scripts/gate_metrics.py) | Writes and checks [`_generated/GATE.md`](_generated/GATE.md). |
+| [`../scripts/gate/identity.py`](../scripts/gate/identity.py) | Byte-identical copy of the lead Publishing identity checker. |
+| [`workflows/record-identity.schema.json`](workflows/record-identity.schema.json) | Pinned canonical record identity schema; not an ATLAS-specific grammar. |
 
 ## Source, tests, and examples
 
