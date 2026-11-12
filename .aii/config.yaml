@@ -94,24 +94,38 @@ tasks:
   validate:
     cmd: python -m aii_platform.aii_sidecar.validate . --completeness
     description: Validate this sidecar against the aii-sidecar/v1 schema.
+  setup:
+    cmd: ./gate setup
+    description: Install the gate environment (needs network on first run).
   lint:
     cmd: ./gate lint
     description: Run the lint arm (flake8 fatal-error codes).
   qa:
     cmd: ./gate docs
-    description: Run the docs arm (whitespace, links, YAML, generated page).
+    description: Check docs/documentation-index.md, documentation QA, the Publishing
+      artifact digests, and the generated gate page. No manuscript command.
+  fast:
+    cmd: ./gate fast
+    description: Run the test suite without the slow marker.
   test:
     cmd: ./gate test
     description: Run the full test suite.
   gnn:
     cmd: ./gate gnn
-    description: Run the pinned GNN conformance arm (needs network).
+    description: Run GNN conformance against .github/gnn-pin.json (needs network).
+  all:
+    cmd: ./gate all
+    description: Run the offline lint, docs, and full test arms.
+  measure:
+    cmd: ./gate measure
+    description: Refresh the generated gate measurements.
 integration:
   analytics: false
   dashboard: false
 docs:
 - docs/README.md
 - docs/documentation-index.md
+- docs/workflows/publishing.md
 - README.md
 - AGENTS.md
 - .aii/docs/INTEGRATION.md

@@ -8,6 +8,7 @@ parser, preinstalled on macOS and on GitHub-hosted Ubuntu runners):
 2. Every relative link in markdown files resolves to an existing path, and
    every in-file anchor fragment resolves to a heading.
 3. .aii/config.yaml and CITATION.cff parse as YAML.
+4. Pinned Publishing artifacts match the canonical recorded digests.
 
 Exit code is non-zero on any failure, so the script can be used as a CI gate
 (.github/workflows/docs-qa.yml) and as a local pre-commit check. See
@@ -27,7 +28,8 @@ SUFFIXES = (".md", ".yaml", ".yml", ".cff")
 
 def tracked_files() -> list[pathlib.Path]:
     out = subprocess.run(
-        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+        ["git", "ls-files"], cwd=ROOT, stdin=subprocess.DEVNULL,
+        capture_output=True, text=True, check=True
     )
     return [ROOT / p for p in out.stdout.splitlines() if p]
 
@@ -80,18 +82,34 @@ def check_yaml(files: list[pathlib.Path], errors: list[str]) -> None:
             errors.append(f"{name}: YAML parse failed: {ruby.stderr.strip()}")
 
 
+def check_publishing(errors: list[str]) -> None:
+    checker = [sys.executable, "scripts/gate/identity.py"]
+    commands = [checker]
+    for path in (
+        "docs/workflows/record-identity.schema.json",
+        "scripts/gate/identity.py",
+        ".github/gnn-pin.json",
+    ):
+        commands.append([*checker, "--verify-copy", path])
+    for command in commands:
+        result = subprocess.run(command, cwd=ROOT)
+        if result.returncode != 0:
+            errors.append(f"Publishing check failed: {' '.join(command[1:])}")
+
+
 def main() -> int:
     files = tracked_files()
     errors: list[str] = []
     check_trailing_whitespace(files, errors)
     check_links(files, errors)
     check_yaml(files, errors)
+    check_publishing(errors)
     if errors:
         print(f"docs QA failed ({len(errors)} issue(s)):")
         for e in errors:
             print(f"  - {e}")
         return 1
-    print("docs QA passed: whitespace, links/anchors, and YAML all clean.")
+    print("docs QA passed: whitespace, links/anchors, YAML, and Publishing digests all clean.")
     return 0
 
 

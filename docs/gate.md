@@ -11,7 +11,7 @@ the exact command it runs; this page describes what each one covers.
 | --- | --- | --- |
 | `setup` | Installs the one environment the other arms share (`-e .[dev,viz,obsidian]`). | yes, first run |
 | `lint` | `flake8` over `src`, `tests`, `scripts`, using the committed `.flake8`. | no |
-| `docs` | `scripts/docs_qa.py` (whitespace, links/anchors, YAML) and the generated-page check. | no |
+| `docs` | `scripts/docs_qa.py` (whitespace, links/anchors, YAML, Publishing artifact digests) and the generated-page check. | no |
 | `fast` | The test suite without the `slow` marker. | no |
 | `test` | The full test suite. | no |
 | `gnn` | Pinned GNN conformance against `.github/gnn-pin.json`. | yes |
@@ -19,6 +19,11 @@ the exact command it runs; this page describes what each one covers.
 | `measure` | Re-measures the arms into [`_generated/GATE.md`](_generated/GATE.md). | no |
 
 With no argument the gate runs `fast`: the quick developer loop.
+
+The [Publishing member contract](workflows/publishing.md) pins the canonical
+identity schema, checker, and GNN pin. The docs arm runs the copied lead checker
+offline, including `--verify-copy` for each pinned artifact; it does not scan a
+journal corpus or introduce another gate entry point.
 
 ## Environment
 
