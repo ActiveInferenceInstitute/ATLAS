@@ -73,16 +73,20 @@ installs with `pip` from `pyproject.toml` and has no `uv` lock file.
 `gnn-importer-pin/v1`), which pins
 `ActiveInferenceInstitute/Generalized_Notation_Notation` at `v5.0.3`
 (`8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1`). The arm installs the pinned
-parser with `--no-deps` plus the runtime modules it imports — skipping the
-install when that exact version is already importable — verifies the installed
-version against the pin, then parses and type-checks every `*.gnn.md`
+parser with `--no-deps` plus the runtime modules it imports, and verifies what
+is installed against the pin: the version must match `tag`, and PEP 610
+`direct_url.json` must name the pinned repository and commit. An existing
+install is reused only when that provenance matches; otherwise the pinned spec
+is force-reinstalled — a version string is not proof of which commit produced
+it. The arm then parses and type-checks every `*.gnn.md`
 sketch in the repository — or, as ATLAS currently has none, the pinned upstream
 `input/gnn_files/basics/static_perception.md` exemplar.
 
 Because the parser install and the exemplar fetch need network access, `gnn`
 is not part of `all`. `./gate measure --include-gnn` records it when a network
-is available; `scripts/gnn_conformance.py --no-install` uses only what is
-already installed.
+is available. `scripts/gnn_conformance.py --no-install` requires the same
+provenance from an existing install and fails rather than accepting a parser
+that only reports the pinned version.
 
 ## Refreshing the measured page
 

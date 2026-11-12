@@ -5,10 +5,17 @@ Single implementation of the ``gnn conformance (pinned)`` job: the local gate
 arm (``./gate gnn``) and CI (``.github/workflows/gate.yml``) run this exact
 file, so the check has one definition.
 
-It reads ``.github/gnn-pin.json`` (schema ``gnn-importer-pin/v1``), installs
+It reads ``.github/gnn-pin.json`` (schema ``gnn-importer-pin/v1``) and installs
 the pinned parser revision with ``--no-deps`` plus the runtime dependencies the
-parser imports (skipped when that exact version is already importable), then
-parses and type-checks every ``*.gnn.md`` sketch in the repository. When the repository carries no sketch, the pinned upstream
+parser imports, then parses and type-checks every ``*.gnn.md`` sketch in the
+repository.
+
+An existing install is reused only when PEP 610 ``direct_url.json`` binds it to
+the pinned repository *and* the pinned commit. A version string is not
+provenance: another commit, a fork, or a wheel from an index can all report
+``5.0.3``. ``--no-install`` applies the same requirement and fails rather than
+keeping an already-importable but different parser. Provenance binds where the
+distribution was installed from, not the bytes on disk. When the repository carries no sketch, the pinned upstream
 ``input/gnn_files/basics/static_perception.md`` exemplar is checked instead:
 that is a pipeline and pin conformance baseline, not a claim that ATLAS
 contains a generative model.
@@ -71,6 +78,9 @@ def parser_spec(pin: dict) -> str:
     )
 
 
+DISTRIBUTION = "generalized-notation-notation"
+
+
 def installed_version() -> str | None:
     """Version of an importable ``gnn`` package, or None when it cannot be used."""
     try:
@@ -81,10 +91,65 @@ def installed_version() -> str | None:
         return None
 
 
+def installed_provenance() -> dict:
+    """PEP 610 ``direct_url.json`` for the installed parser, or ``{}``.
+
+    A wheel from an index carries no ``direct_url.json`` at all, so its origin
+    cannot be checked and it is never treated as the pin.
+    """
+    try:
+        from importlib.metadata import distribution
+
+        raw = distribution(DISTRIBUTION).read_text("direct_url.json")
+    except Exception:
+        return {}
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def normalize_repository(url: str) -> str | None:
+    """``https://host/owner/repo.git`` -> ``host/owner/repo``; None if not a URL."""
+    value = url.strip().lower()
+    for prefix in ("git+https://", "https://"):
+        if value.startswith(prefix):
+            value = value[len(prefix):]
+            break
+    else:
+        return None
+    return value.rstrip("/").removesuffix(".git")
+
+
+def provenance_check(pin: dict) -> tuple[str | None, str]:
+    """Return (installed commit, problem). A problem means the install is not the pin."""
+    if not PIN_PATH.is_file():
+        return None, "pin file missing"
+    direct_url = installed_provenance()
+    if not direct_url:
+        return None, f"no PEP 610 direct_url.json for {DISTRIBUTION} (origin unknown)"
+    vcs = direct_url.get("vcs_info") or {}
+    if vcs.get("vcs") != "git":
+        return None, f"installed from {direct_url.get('url')!r} without git metadata"
+    commit = vcs.get("commit_id")
+    if commit != pin["revision"]:
+        return commit, f"installed commit {commit!r} is not the pinned revision {pin['revision']!r}"
+    repository = normalize_repository(str(direct_url.get("url", "")))
+    expected_repository = f"github.com/{pin['repository']}".lower()
+    if repository != expected_repository:
+        return commit, f"installed from {repository!r}, pin expects {expected_repository!r}"
+    return commit, ""
+
+
 def install_parser(pin: dict) -> None:
     pip = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check"]
     subprocess.check_call([*pip, *PARSER_RUNTIME_DEPS])
-    subprocess.check_call([*pip, "--no-deps", parser_spec(pin)])
+    # --force-reinstall: pip treats an installed 5.0.3 from another commit as
+    # already satisfying the requirement, which would keep the wrong bytes.
+    subprocess.check_call([*pip, "--no-deps", "--force-reinstall", parser_spec(pin)])
 
 
 def import_parser() -> tuple[str, object, object, object]:
@@ -135,8 +200,17 @@ def main(argv: list[str] | None = None) -> int:
     try:
         pin = read_pin()
         expected_version = pin["tag"].removeprefix("v")
-        if not args.no_install and installed_version() != expected_version:
+        commit, problem = provenance_check(pin)
+        if problem and args.no_install:
+            raise ConformanceError(
+                f"--no-install refuses this environment: {problem}; "
+                "run without --no-install to install the pin"
+            )
+        if problem:
             install_parser(pin)
+            commit, problem = provenance_check(pin)
+            if problem:
+                raise ConformanceError(f"after installing the pinned spec: {problem}")
         gnn_version, parse_gnn_formal, validate_gnn_syntax, GNNTypeChecker = import_parser()
         expected_version = pin["tag"].removeprefix("v")
         if gnn_version != expected_version:
@@ -173,6 +247,7 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(
             {
                 "gnn-version": gnn_version,
+                "install-commit": commit,
                 "pin-revision": pin["revision"],
                 "models": checked,
                 "source": source,
