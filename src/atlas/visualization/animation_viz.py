@@ -18,6 +18,8 @@ from collections import defaultdict
 import io
 import base64
 
+from .common import ANIMATION_NODE_COLORS
+
 try:
     import plotly.graph_objects as go
     import plotly.express as px
@@ -54,15 +56,7 @@ class AnimationVisualizer:
         self.figsize = (12, 8)
 
         # Color schemes for animations
-        self.node_colors = {
-            'entity': '#4CAF50',
-            'pattern': '#2196F3',
-            'query': '#FF9800',
-            'attribute': '#9C27B0',
-            'new': '#F44336',
-            'active': '#FFC107',
-            'complete': '#4CAF50'
-        }
+        self.node_colors = ANIMATION_NODE_COLORS
 
         logger.info("AnimationVisualizer initialized")
 

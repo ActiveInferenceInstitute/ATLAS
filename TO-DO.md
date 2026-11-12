@@ -123,7 +123,10 @@ items are listed at the end.
   (the fork never published; packaging metadata is ready).
 - Optional: upstream sync with the reference fork if it ever diverges again
   (last pushed 2025-06-15; the port took its current HEAD).
-- Optional: `atlas.visualization` (about 3,100 lines across five modules) has
-  parallel figure/color-scheme helpers; a consolidation pass would reduce it
-  but was not attempted here because the module surface is not exercised by
-  any consumer contract yet.
+- Optional: `atlas.visualization` (about 3,100 lines across five modules)
+  still has parallel figure helpers; a consolidation pass would reduce it
+  but is not attempted here because the module surface is not exercised by
+  any consumer contract. The parallel color-scheme helpers were consolidated
+  (2026-11-06): the five scheme dictionaries now live as named constants in
+  `atlas/visualization/common.py`, each class references the constants, and
+  the values are unchanged (test suite green).

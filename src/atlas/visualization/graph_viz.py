@@ -18,6 +18,8 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import pandas as pd
 
+from .common import GRAPH_COLOR_SCHEMES
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,13 +39,7 @@ class GraphVisualizer:
             atlas_engine: Optional ATLAS engine instance
         """
         self.atlas_engine = atlas_engine
-        self.color_schemes = {
-            'entity': '#1f77b4',      # Blue
-            'pattern': '#ff7f0e',     # Orange
-            'query': '#2ca02c',       # Green
-            'attribute': '#d62728',   # Red
-            'prompt_interface': '#9467bd'  # Purple
-        }
+        self.color_schemes = GRAPH_COLOR_SCHEMES
 
         # Layout algorithms available
         self.layouts = {

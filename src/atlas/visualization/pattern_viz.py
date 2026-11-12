@@ -16,6 +16,8 @@ import seaborn as sns
 import pandas as pd
 from collections import defaultdict
 
+from .common import EFFECTIVENESS_COLORMAP, HIERARCHY_COLORS
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,15 +41,10 @@ class PatternVisualizer:
         self.pattern_engine = pattern_engine
 
         # Color schemes for different visualization types
-        self.hierarchy_colors = {
-            'root': '#ff6b6b',       # Red
-            'intermediate': '#4ecdc4', # Teal
-            'leaf': '#45b7d1',       # Blue
-            'orphan': '#96ceb4'      # Green
-        }
+        self.hierarchy_colors = HIERARCHY_COLORS
 
         # Pattern effectiveness color gradient
-        self.effectiveness_colormap = plt.cm.RdYlGn
+        self.effectiveness_colormap = EFFECTIVENESS_COLORMAP
 
         logger.info("PatternVisualizer initialized")
 
