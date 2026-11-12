@@ -1,19 +1,19 @@
-# ATLAS — .aii sidecar documentation
+# `.aii/docs` — sidecar documents
 
-`.aii/` is the InstituteOS metadata sidecar convention: a standalone,
-committed folder present in every Active Inference Institute repository. It
-carries curated metadata the GitHub API cannot provide (identity,
-affiliation, category, status, ecosystem links, tags) so InstituteOS tooling
-can federate a unified view across repositories.
+Longer-form companions to [`../README.md`](../README.md) for **`ActiveInferenceInstitute/ATLAS`**. The
+machine-readable source of truth stays [`../config.yaml`](../config.yaml); these
+documents are its human face, and a folder that carries documents carries its own
+[`README.md`](README.md) and [`AGENTS.md`](AGENTS.md).
 
-For this repository:
+| Document | Purpose |
+| --- | --- |
+| [`INTEGRATION.md`](INTEGRATION.md) | How this repository is federated, validated, and operated through InstituteOS. |
 
-- `.aii/config.yaml` — the sidecar itself (schema: `aii-sidecar/v1`).
-- The full field-by-field reference lives in the repository docs:
-  [docs/metadata.md](../../docs/metadata.md).
-
-Validate the sidecar with the InstituteOS CLI:
+## Validate
 
 ```bash
-python -m aii_platform.aii_sidecar.validate . --completeness
+python -m aii_platform.aii_sidecar.validate <repo> --completeness
+python -m aii_platform.aii_sidecar docs <repo> --overwrite
+python -m aii_platform.aii_sidecar.run <repo> --list
 ```
+
