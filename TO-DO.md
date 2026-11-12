@@ -1,7 +1,7 @@
 # ATLAS — Documentation To-Do
 
-Last reviewed: 2026-11-12 (sixth pass: one gate entry point, one CI workflow,
-and the documentation hub/index split).
+Last reviewed: 2026-11-12 (seventh pass: sidecar documentation paths resolved
+relative to `.aii/`, plus the landing commit for each 2026-11-12 pass).
 
 Scope definitions:
 
@@ -13,22 +13,35 @@ Scope definitions:
 Completed items are marked ✓ with the implementing commit. Open / deferred
 items are listed at the end.
 
-## Gate audit fixes (2026-11-12)
+## Gate audit fixes (2026-11-12, PR #11)
+
+Landed in `662389d`; the regression cases live in `tests/test_docs_qa.py`.
 
 - [x] Correct the docs QA script's CI reference to `.github/workflows/gate.yml`.
 - [x] Include the supported `all` and `measure` arms in `./gate --list`.
 - [x] Check heading fragments in linked markdown files, not just the source file;
       add regression coverage for missing and valid cross-file anchors.
 
-## Publishing member migration (2026-11-12)
+## Publishing member migration (2026-11-12, PR #10)
+
+Landed in `f8a2677`; the pinned digests are in
+`docs/workflows/publishing.md` and checked by `scripts/gate/identity.py`.
 
 - [x] Record the documented gate arms and Publishing member facts in the sidecar.
 - [x] Point to the lead contract rather than redefine record identity; pin its
       schema and checker, plus the shared GNN pin, by digest.
 - [x] Check the pinned copies from the existing docs arm while retaining the
       member checks already proving gate, documentation, measurement, and GNN behavior.
+- [x] Declare the sidecar `docs` entries relative to `.aii/`
+      (`docs/README.md`, `../docs/documentation-index.md`,
+      `../docs/workflows/publishing.md`, …), keeping entry order and metadata,
+      and regenerate the guides — `.aii/config.yaml`, `.aii/docs/README.md`,
+      `.aii/docs/INTEGRATION.md` ✓ `df3256a` (PR #12). The InstituteOS
+      validator reports `OK` with no missing declared documentation.
 
-## Sixth pass (2026-11-12)
+## Sixth pass (2026-11-12, PR #8)
+
+Landed in `0754b63`.
 
 - [x] **One gate entry point.** `./gate` runs every check as a separate arm
       (`setup`, `lint`, `docs`, `fast`, `test`, `gnn`, `all`) and prints each
@@ -98,6 +111,7 @@ items are listed at the end.
 - [x] Add machine-readable citation metadata (CITATION.cff) — ✓ `84b3c03`
 - [x] Add contribution guide (CONTRIBUTING.md) — ✓ `84b3c03`
 - [x] Add docs/ with a documentation index — `docs/index.md` ✓ `acbcef2`
+      (renamed `docs/documentation-index.md` in PR #8, `0754b63`)
 - [x] Add this TO-DO file scoping all review findings ✓ `4e0ad77`
 - [x] Record the review pass in REVIEW_LOG_2026-08-02.md ✓ `4e0ad77`
 - [x] Add research-grounded About page — `docs/overview.md` ✓ `0bdaeb8`
@@ -109,6 +123,7 @@ items are listed at the end.
 - [x] Enrich `.aii/config.yaml` to the documented `aii-sidecar/v1` schema
       — ✓ `298f121`
 - [x] Add documentation QA gate and `docs-qa` CI workflow — ✓ `af83058`
+      (that workflow was replaced by `.github/workflows/gate.yml` in PR #8)
 - [x] Add agent/contributor working conventions — `AGENTS.md` ✓ `871af5b`
 - [x] Add `.aii/docs/README.md`, declare it in the sidecar `docs` field, and
       add the `qa` portable task — ✓ `a5753ba`
@@ -143,10 +158,14 @@ items are listed at the end.
   [`docs/_generated/GATE.md`](docs/_generated/GATE.md). Paying it down is a
   separate pass: unused imports and locals (`F401`, `F841`), bare `except`
   (`E722`), and line/indent style (`E501`, `E128`). Do not widen `.flake8`
-  before the debt is gone.
+  before the debt is gone. Owner: whoever takes the style pass; nothing
+  external blocks it — it is deliberately not a gate failure, so it never
+  turns `main` red.
 - Types. `mypy` is declared in the `dev` extra but nothing configures or runs
   it, and the package is unannotated. A types arm needs a configuration
   decision and an annotation pass first; see [`docs/gate.md`](docs/gate.md).
+  Owner: the repository owner (mypy strictness baseline); blocked on that
+  decision, not on tooling — `mypy` is already installed by `./gate setup`.
 - GNN conformance warning sentinel. The pinned `gnn conformance (pinned)` job
   ([`.github/GNN.md`](.github/GNN.md),
   [`.github/workflows/gate.yml`](.github/workflows/gate.yml),
@@ -158,8 +177,25 @@ items are listed at the end.
   `Generalized_Notation_Notation` revision
   `8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1` (v5.0.3); do not change the pin to
   "fix" it. Track it upstream and, if a stricter check is wanted, compare the
-  return value explicitly (`!= 0`) rather than relying on truthiness.
-- GitHub repository description and topics: verified 2026-11-01 with
+  return value explicitly (`!= 0`) rather than relying on truthiness. Owner:
+  the upstream GNN maintainers; ATLAS can only choose the stricter local
+  comparison, which it has not done because the pinned revision is the
+  conformance target.
+- GNN revision drift. `.github/gnn-pin.json` pins v5.0.3
+  (`8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1`, confirmed 2026-11-12 against
+  `git ls-remote --tags`), while the estate importer repositories moved to
+  v5.1.0 (`75c834bd8519dc7b5adc4d24f16bf393cfd1ecdf`; tag object
+  `7393a5d`). ATLAS is not an importer — it carries no GNN model and no GNN
+  dependency, and the pin only supplies the parser and the upstream exemplar
+  that [`scripts/gnn_conformance.py`](scripts/gnn_conformance.py) checks — so
+  no adoption is owed here. A bump is still a real option and has a cost:
+  `.github/gnn-pin.json` is digest-pinned in
+  [`docs/workflows/publishing.md`](docs/workflows/publishing.md) and checked
+  by `scripts/gate/identity.py` through `./gate docs`, and `./gate gnn` needs
+  network access. Owner: whoever owns the estate GNN pin; blocked on that
+  decision, and hosted runs cannot be the evidence while every `gate` and
+  CodeQL run fails within seconds of starting.
+- GitHub repository description and topics: re-verified 2026-11-12 with
   `gh api repos/ActiveInferenceInstitute/ATLAS` that the description reads
   "Adaptive Thinking and Learning Architecture System: a question-oriented
   knowledge management framework with entities, patterns, a graph-backed
