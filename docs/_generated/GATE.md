@@ -13,8 +13,8 @@ so treat small differences between runs as noise.
 
 | Field | Value |
 | --- | --- |
-| Measured at (UTC) | 2026-11-12 13:05 |
-| Recorded against commit | `22a202b` plus the working tree at measurement |
+| Measured at (UTC) | 2026-11-12 13:07 |
+| Recorded against commit | `f3bd0b4` plus the working tree at measurement |
 | Host | Darwin 27.0.0 (arm64) |
 | Python | 3.13.11 (`./.venv/bin/python`) |
 | pytest | 9.2.0 |
@@ -25,11 +25,11 @@ so treat small differences between runs as noise.
 | Arm | Wall time (s) | Result | Command (as resolved on the measuring host) |
 | --- | --- | --- | --- |
 | `setup` | not measured | run outside this page | `.venv/bin/python -m pip install --disable-pip-version-check -e '.[dev,viz,obsidian]'` |
-| `lint` | 1.85 | ok | `.venv/bin/python -m flake8 src tests scripts` |
-| `docs` | 0.83 | ok | `.venv/bin/python scripts/docs_qa.py && .venv/bin/python scripts/gate_metrics.py --check` |
-| `fast` | 4.57 | ok | `.venv/bin/python -m pytest -m 'not slow'` |
-| `test` | 8.11 | ok | `.venv/bin/python -m pytest` |
-| `gnn` | 3.89 | ok | `.venv/bin/python scripts/gnn_conformance.py` |
+| `lint` | 0.91 | ok | `.venv/bin/python -m flake8 src tests scripts` |
+| `docs` | 0.42 | ok | `.venv/bin/python scripts/docs_qa.py && .venv/bin/python scripts/gate_metrics.py --check` |
+| `fast` | 4.59 | ok | `.venv/bin/python -m pytest -m 'not slow'` |
+| `test` | 5.27 | ok | `.venv/bin/python -m pytest` |
+| `gnn` | 2.96 | ok | `.venv/bin/python scripts/gnn_conformance.py` |
 
 `setup` is an install step rather than a check, so its duration depends on
 the local wheel cache and is not recorded here. `gnn` needs network access to
@@ -52,7 +52,8 @@ That debt is tracked in [TO-DO.md](../../TO-DO.md) and is not a gate failure.
 ## Verification
 
 ```bash
-./gate all      # lint, docs, fast, test
+./gate all      # lint, docs, test
+./gate          # fast arm only
 ./gate gnn      # pinned conformance; needs network
 ./gate measure  # rewrite this page
 ```
