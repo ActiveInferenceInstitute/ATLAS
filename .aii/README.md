@@ -45,10 +45,14 @@ Institute repositories without touching this project's own content. The schema i
 | --- | --- | --- | --- |
 | `inventory` | `git ls-files` | `.` | List tracked files. |
 | `validate` | `python -m aii_platform.aii_sidecar.validate . --completeness` | `.` | Validate this sidecar against the aii-sidecar/v1 schema. |
+| `setup` | `./gate setup` | `.` | Install the gate environment (needs network on first run). |
 | `lint` | `./gate lint` | `.` | Run the lint arm (flake8 fatal-error codes). |
-| `qa` | `./gate docs` | `.` | Run the docs arm (whitespace, links, YAML, generated page). |
+| `qa` | `./gate docs` | `.` | Check docs/documentation-index.md, documentation QA, the Publishing artifact digests, and the generated gate page. No manuscript command. |
+| `fast` | `./gate fast` | `.` | Run the test suite without the slow marker. |
 | `test` | `./gate test` | `.` | Run the full test suite. |
-| `gnn` | `./gate gnn` | `.` | Run the pinned GNN conformance arm (needs network). |
+| `gnn` | `./gate gnn` | `.` | Run GNN conformance against .github/gnn-pin.json (needs network). |
+| `all` | `./gate all` | `.` | Run the offline lint, docs, and full test arms. |
+| `measure` | `./gate measure` | `.` | Refresh the generated gate measurements. |
 
 ## Links
 
