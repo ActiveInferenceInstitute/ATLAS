@@ -24,37 +24,47 @@ its tests, examples, documentation, and InstituteOS metadata.
 - `tests/` — pytest suite; `examples/` — runnable examples.
 - `pyproject.toml` — the only packaging metadata home (project metadata,
   dependency extras, pytest configuration).
-- `README.md` — entry point and index; `docs/` — guides (index, overview,
-  architecture, API, usage, applied active inference, metadata, quickstart).
-  Each code folder carries a `README.md`: `src/README.md`, `tests/README.md`,
-  and `docs/README.md`.
+- `README.md` — entry point and index; `docs/` — guides, with
+  `docs/README.md` as the hub and `docs/documentation-index.md` as the flat
+  index (overview, architecture, API, usage, applied active inference,
+  metadata, quickstart, gate). Each code folder carries a `README.md`:
+  `src/README.md`, `tests/README.md`, and `docs/README.md`.
 - `TO-DO.md` — scoped improvements; update it when you complete or add work.
 - `REVIEW_LOG_*.md` — audit trail for documentation/implementation passes.
 - `.aii/config.yaml` — InstituteOS metadata sidecar (schema: `aii-sidecar/v1`).
 - `CITATION.cff`, `CONTRIBUTING.md`, `LICENSE`, `SECURITY.md` — standard
   repository metadata.
-- `scripts/docs_qa.py` — the documentation QA gate.
-- `.github/` — issue/PR templates, `docs-qa` and `tests` CI workflows.
+- `gate` — the single gate entry point; `./gate --list` prints every arm with
+  its exact command. `.flake8` holds the lint arm's configuration.
+- `scripts/docs_qa.py` — the documentation QA gate; `scripts/gnn_conformance.py`
+  — the pinned GNN conformance check; `scripts/gate_metrics.py` — writes and
+  checks `docs/_generated/GATE.md`.
+- `.github/` — issue/PR templates, the `gate` workflow, and the GNN pin
+  (`.github/gnn-pin.json`, schema `gnn-importer-pin/v1`).
 
 ## Before committing
 
-Install the package with the extras the suite exercises, then run both gates
-and fix anything they report:
+Install the one environment, then run the gate and fix anything it reports:
 
 ```bash
-pip install -e ".[test,viz,obsidian]"
-python3 scripts/docs_qa.py
-python -m pytest
+./gate setup
+./gate all
 ```
 
-The same gates run as CI (`.github/workflows/docs-qa.yml` and
-`.github/workflows/tests.yml`). The QA gate checks trailing whitespace,
+`all` is the lint arm, the docs arm, and the full test suite; see
+[`docs/gate.md`](docs/gate.md). Every arm runs from `./gate` and CI
+(`.github/workflows/gate.yml`) calls the same arms — never add a second copy of
+a command to a workflow or a doc. The docs arm checks trailing whitespace,
 relative links and in-file anchors in markdown, and YAML parseability of
-`.aii/config.yaml` and `CITATION.cff`. The test suite must stay green; with
-the extras above no test skips, and optional-dependency tests skip only when
-their extra is absent. `tests.yml` also runs the pinned GNN conformance baseline
-(see `.github/GNN.md`); ATLAS defines no `.gnn.md` model file, so the job validates
-the pinned upstream exemplar.
+`.aii/config.yaml` and `CITATION.cff`, then checks that
+`docs/_generated/GATE.md` still matches the gate's arm list. The test suite must
+stay green; the setup step installs the optional extras, so no test skips. The
+`gnn` arm runs separately because it installs the pinned parser: it validates
+the pin in `.github/gnn-pin.json` and, as ATLAS defines no `.gnn.md` model file,
+the pinned upstream exemplar (see `.github/GNN.md`).
+
+Measured numbers (per-arm wall time, test counts) are generated into
+`docs/_generated/GATE.md` by `./gate measure`; do not type them into prose.
 
 ## Code conventions
 

@@ -45,12 +45,14 @@ Institute repositories without touching this project's own content. The schema i
 | --- | --- | --- | --- |
 | `inventory` | `git ls-files` | `.` | List tracked files. |
 | `validate` | `python -m aii_platform.aii_sidecar.validate . --completeness` | `.` | Validate this sidecar against the aii-sidecar/v1 schema. |
-| `qa` | `python3 scripts/docs_qa.py` | `.` | Run the documentation QA gate (whitespace, links, YAML). |
-| `test` | `python -m pytest` | `.` | Run the test suite. |
+| `lint` | `./gate lint` | `.` | Run the lint arm (flake8 fatal-error codes). |
+| `qa` | `./gate docs` | `.` | Run the docs arm (whitespace, links, YAML, generated page). |
+| `test` | `./gate test` | `.` | Run the full test suite. |
+| `gnn` | `./gate gnn` | `.` | Run the pinned GNN conformance arm (needs network). |
 
 ## Links
 
-- **docs:** docs/index.md
+- **docs:** docs/documentation-index.md
 - **github:** https://github.com/ActiveInferenceInstitute/ATLAS
 - **homepage:** https://github.com/ActiveInferenceInstitute/ATLAS
 - **website:** https://www.activeinference.org

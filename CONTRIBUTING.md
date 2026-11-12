@@ -18,8 +18,9 @@ ATLAS is a public repository stewarded by the
 - Keep changes scoped and grounded: content must match the actual state of
   the repository. Do not add links, statistics, or claims that cannot be
   verified against the repository or the Institute's public sources.
-- Code changes must keep the test suite green (`python -m pytest`) and pass
-  the documentation QA gate (`python3 scripts/docs_qa.py`).
+- Code changes must keep the gate green. Install once with `./gate setup`, then
+  run `./gate all` (lint, documentation QA, full test suite) and fix anything it
+  reports; see [`docs/gate.md`](docs/gate.md).
 - Follow the existing structure and conventions of the repository, and keep
   changes proportionate to the content they describe.
 

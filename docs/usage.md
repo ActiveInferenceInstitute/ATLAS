@@ -27,7 +27,7 @@ Optional extras:
 
 ```bash
 pip install -e ".[viz]"
-pip install -e ".[test,viz,obsidian]"   # full suite, nothing skipped
+pip install -e ".[test,viz,obsidian]"   # what ./gate setup installs
 ```
 
 ## Quick start
@@ -109,11 +109,13 @@ graphml = engine.export_graph(format="graphml")  # or "gexf" / "json"
 ## Running the tests
 
 ```bash
-pip install -e ".[test,viz,obsidian]"
-python -m pytest
+./gate setup   # installs the extras the suite exercises
+./gate test    # full suite
 ```
 
-The suite is kept green in CI; with those extras installed no test skips.
+`./gate` with no argument runs the fast arm instead: the suite without the
+`slow` marker (`tests/test_atlas_performance.py`). The suite is kept green in
+CI; with those extras installed no test skips. See [gate.md](gate.md).
 
 ## Examples
 
