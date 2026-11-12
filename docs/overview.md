@@ -24,9 +24,10 @@ system implementation plus metadata and documentation:
   interfaces, integrations, visualization, utils).
 - `tests/` — test suite; `examples/` — runnable examples.
 - `README.md`, `LICENSE` (CC-BY-4.0), `CITATION.cff`, `CONTRIBUTING.md`,
-  `SECURITY.md`, `AGENTS.md`, `scripts/docs_qa.py`, `.github/` (templates
-  and CI), `docs/` (index, overview, architecture, API, usage, metadata,
-  quickstart), `TO-DO.md`, and the `.aii` metadata sidecar.
+  `SECURITY.md`, `AGENTS.md`, the `gate` entry point and its scripts,
+  `.github/` (templates, the gate workflow, and the GNN pin), `docs/` (hub,
+  index, overview, architecture, API, usage, metadata, quickstart, gate),
+  `TO-DO.md`, and the `.aii` metadata sidecar.
 
 History: initialized 2024-08-21; sidecar and license added 2026-06-30;
 documentation passes and the code port on 2026-08-02 (see

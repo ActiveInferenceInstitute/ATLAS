@@ -1,7 +1,7 @@
 # AII sidecar — InstituteOS metadata. Schema: aii_platform.aii_sidecar
 meta:
   sidecar_version: 1.2.1
-  updated: '2026-11-11'
+  updated: '2026-11-12'
 repo:
   name: ATLAS
   slug: atlas
@@ -34,7 +34,7 @@ ecosystem:
   links:
     github: https://github.com/ActiveInferenceInstitute/ATLAS
     website: https://www.activeinference.org
-    docs: docs/index.md
+    docs: docs/documentation-index.md
     homepage: https://github.com/ActiveInferenceInstitute/ATLAS
 artifacts:
 - path: src/atlas
@@ -49,9 +49,12 @@ artifacts:
 - path: README.md
   kind: doc
   description: Repository overview.
-- path: docs/index.md
+- path: docs/documentation-index.md
   kind: doc
-  description: Documentation index.
+  description: Documentation index (flat index of long-lived docs).
+- path: gate
+  kind: code
+  description: Single gate entry point; ./gate --list prints every arm.
 - path: CITATION.cff
   kind: doc
   description: Machine-readable citation metadata.
@@ -91,19 +94,26 @@ tasks:
   validate:
     cmd: python -m aii_platform.aii_sidecar.validate . --completeness
     description: Validate this sidecar against the aii-sidecar/v1 schema.
+  lint:
+    cmd: ./gate lint
+    description: Run the lint arm (flake8 fatal-error codes).
   qa:
-    cmd: python3 scripts/docs_qa.py
-    description: Run the documentation QA gate (whitespace, links, YAML).
+    cmd: ./gate docs
+    description: Run the docs arm (whitespace, links, YAML, generated page).
   test:
-    cmd: python -m pytest
-    description: Run the test suite.
+    cmd: ./gate test
+    description: Run the full test suite.
+  gnn:
+    cmd: ./gate gnn
+    description: Run the pinned GNN conformance arm (needs network).
 integration:
   analytics: false
   dashboard: false
 docs:
 - docs/README.md
+- docs/documentation-index.md
 - README.md
 - AGENTS.md
-- docs/INTEGRATION.md
-- docs/AGENTS.md
+- .aii/docs/INTEGRATION.md
+- .aii/docs/AGENTS.md
 schema: aii-sidecar/v1

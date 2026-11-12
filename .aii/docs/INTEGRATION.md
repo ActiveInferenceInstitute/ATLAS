@@ -44,7 +44,7 @@
 | `tests` | `code` | Test suite. |
 | `pyproject.toml` | `code` | Package metadata, dependency extras, and pytest configuration. |
 | `README.md` | `doc` | Repository overview. |
-| `docs/index.md` | `doc` | Documentation index. |
+| `docs/documentation-index.md` | `doc` | Documentation index. |
 | `CITATION.cff` | `doc` | Machine-readable citation metadata. |
 | `AGENTS.md` | `doc` | Agent guidance. |
 | `LICENSE` | `doc` | License. |
@@ -57,8 +57,10 @@
 | --- | --- | --- | --- |
 | `inventory` | `git ls-files` | `.` | List tracked files. |
 | `validate` | `python -m aii_platform.aii_sidecar.validate . --completeness` | `.` | Validate this sidecar against the aii-sidecar/v1 schema. |
-| `qa` | `python3 scripts/docs_qa.py` | `.` | Run the documentation QA gate (whitespace, links, YAML). |
-| `test` | `python -m pytest` | `.` | Run the test suite. |
+| `lint` | `./gate lint` | `.` | Run the lint arm (flake8 fatal-error codes). |
+| `qa` | `./gate docs` | `.` | Run the docs arm (whitespace, links, YAML, generated page). |
+| `test` | `./gate test` | `.` | Run the full test suite. |
+| `gnn` | `./gate gnn` | `.` | Run the pinned GNN conformance arm (needs network). |
 
 ## Validation
 

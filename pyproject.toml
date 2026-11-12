@@ -72,7 +72,7 @@ all = [
 [project.urls]
 "Bug Reports" = "https://github.com/ActiveInferenceInstitute/ATLAS/issues"
 Source = "https://github.com/ActiveInferenceInstitute/ATLAS"
-Documentation = "https://github.com/ActiveInferenceInstitute/ATLAS/blob/main/docs/index.md"
+Documentation = "https://github.com/ActiveInferenceInstitute/ATLAS/blob/main/docs/documentation-index.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -83,3 +83,6 @@ atlas = ["*.md", "*.txt", "*.json"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["-q", "-p", "no:cacheprovider"]
+markers = [
+  "slow: bounded load and timing checks; deselected by the fast gate arm",
+]

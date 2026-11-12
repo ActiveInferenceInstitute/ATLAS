@@ -4,9 +4,13 @@ The suite runs with `pytest` from the repository root after installing the
 dependency extras the tests exercise, so no test skips:
 
 ```bash
-pip install -e ".[test,viz,obsidian]"
-python -m pytest
+./gate setup   # installs the extras below
+./gate test    # full suite
+./gate         # fast arm: the suite without the `slow` marker
 ```
+
+[`test_atlas_performance.py`](test_atlas_performance.py) carries the `slow`
+marker, so the default arm deselects it and the full suite still runs it.
 
 | Test file | Covers |
 | --- | --- |
@@ -23,5 +27,5 @@ python -m pytest
 | [`run_single_test.py`](run_single_test.py), [`test_runner_simple.py`](test_runner_simple.py) | Standalone runners for a single test, not collected as test modules. |
 
 [`fixtures/`](fixtures/) holds shared fixtures. Tests that need an optional
-extra skip when it is not installed; CI installs `.[test,viz,obsidian]` so
-nothing skips there. The suite needs no network service.
+extra skip when it is not installed; `./gate setup` installs
+`.[dev,viz,obsidian]` so nothing skips. The suite needs no network service.

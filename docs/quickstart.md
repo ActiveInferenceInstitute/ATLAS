@@ -21,8 +21,9 @@ cd ATLAS
 | `CITATION.cff` | Machine-readable citation metadata. |
 | `LICENSE` | CC-BY-4.0 license. |
 | `SECURITY.md` | Security reporting. |
-| `docs/` | Documentation index, overview, architecture, API, usage, applied active inference, metadata, quickstart. |
-| `pyproject.toml` | Packaging metadata, dependency extras, and pytest configuration. |
+| `docs/` | Documentation hub and index, overview, architecture, API, usage, applied active inference, metadata, quickstart, gate. |
+| `pyproject.toml` | Packaging metadata, dependency extras, pytest configuration, and markers. |
+| `gate` | Single entry point for every check; `./gate --list` prints the arms. |
 | `TO-DO.md` | Scoped improvements and open items. |
 | `.aii/config.yaml` | InstituteOS metadata sidecar. |
 
@@ -31,12 +32,13 @@ cd ATLAS
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[test,viz,obsidian]"
-python -m pytest
+./gate setup
+./gate test
 ```
 
-The extras install the optional dependencies so no test skips; see
-[docs/usage.md](usage.md) for the full extra list.
+`./gate setup` installs the optional dependencies the suite exercises, so no
+test skips; see [usage.md](usage.md) for the extra list and [gate.md](gate.md)
+for every arm (`./gate` alone runs the fast arm).
 
 See [docs/usage.md](usage.md) for a usage walkthrough.
 
@@ -55,7 +57,7 @@ tracked files and run the documentation QA gate:
 
 ```bash
 git ls-files
-python3 scripts/docs_qa.py
+./gate docs
 ```
 
 ## Contribute

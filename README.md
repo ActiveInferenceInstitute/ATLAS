@@ -1,8 +1,7 @@
 # ATLAS
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Docs QA](https://github.com/ActiveInferenceInstitute/ATLAS/actions/workflows/docs-qa.yml/badge.svg)](https://github.com/ActiveInferenceInstitute/ATLAS/actions/workflows/docs-qa.yml)
-[![Tests](https://github.com/ActiveInferenceInstitute/ATLAS/actions/workflows/tests.yml/badge.svg)](https://github.com/ActiveInferenceInstitute/ATLAS/actions/workflows/tests.yml)
+[![Gate](https://github.com/ActiveInferenceInstitute/ATLAS/actions/workflows/gate.yml/badge.svg)](https://github.com/ActiveInferenceInstitute/ATLAS/actions/workflows/gate.yml)
 
 ATLAS — Adaptive Thinking and Learning Architecture System — is a knowledge
 management framework of the Active Inference Institute. It provides
@@ -35,9 +34,10 @@ Active, released as v1.0.0. The core engine, entities, patterns, queries, and
 interfaces run locally and offline with only `networkx` installed. The optional
 `viz`, `obsidian`, and `http` extras add visualization, vault import/export, and
 an HTTP client; the tests that use them skip when the extra is absent. The GNN
-conformance workflow downloads the pinned parser at CI time and is not
-reproducible offline. See [`TO-DO.md`](TO-DO.md) for the known warning-sentinel
-caveat in that workflow and the open optional items.
+conformance arm (`./gate gnn`) installs the parser pinned in
+[`.github/gnn-pin.json`](.github/gnn-pin.json) at run time and needs network
+access. See [`TO-DO.md`](TO-DO.md) for the known warning-sentinel caveat in that
+arm and the open optional items.
 
 ## Features
 
@@ -89,17 +89,23 @@ See [docs/usage.md](docs/usage.md) for a full walkthrough.
 
 ## Tests
 
+The repository has one gate with separately runnable arms — see
+[`docs/gate.md`](docs/gate.md):
+
 ```bash
-pip install -e ".[test,viz,obsidian]"
-python -m pytest
+./gate setup   # one environment for the lint and test arms
+./gate         # fast arm: the suite without the `slow` marker
+./gate test    # full suite
+./gate all     # lint, docs, test
 ```
 
-The optional extras are installed so the visualization, Obsidian, and
+The gate installs the optional extras, so the visualization, Obsidian, and
 memory-instrumentation tests run instead of skipping.
 
 ## Documentation
 
-- [Documentation index](docs/index.md) — all guides in one place.
+- [Documentation hub](docs/README.md) and [documentation index](docs/documentation-index.md)
+  — every long-lived document in one place.
 - [About ATLAS](docs/overview.md) — classification, status, and ecosystem
   context.
 - [Architecture](docs/architecture.md) — module map and design.
@@ -110,9 +116,10 @@ memory-instrumentation tests run instead of skipping.
 - [Metadata reference](docs/metadata.md) — the `.aii` sidecar, field by
   field.
 - [Quickstart](docs/quickstart.md) — repository quickstart.
-- [docs/README.md](docs/README.md), [src/README.md](src/README.md), and
-  [tests/README.md](tests/README.md) — folder guides for the documentation,
-  package, and test trees.
+- [The gate](docs/gate.md) — arms, CI mapping, and the measured per-arm page.
+- [src/README.md](src/README.md) and [tests/README.md](tests/README.md) —
+  folder guides for the package and test trees. The measured per-arm numbers
+  live in [docs/_generated/GATE.md](docs/_generated/GATE.md).
 
 ## Repository layout
 
@@ -130,21 +137,26 @@ memory-instrumentation tests run instead of skipping.
 | [SECURITY.md](SECURITY.md) | Security reporting. |
 | [docs/](docs/) | Documentation index and guides. |
 | [TO-DO.md](TO-DO.md) | Scoped improvements and open items. |
-| [scripts/docs_qa.py](scripts/docs_qa.py) | Documentation QA gate (also run in CI). |
-| [.github/](.github/) | Issue/PR templates, docs QA and tests workflows. |
+| [gate](gate) | The single gate entry point; `./gate --list` prints every arm. |
+| [.flake8](.flake8) | Lint arm configuration (fatal-error codes only). |
+| [scripts/docs_qa.py](scripts/docs_qa.py) | Documentation QA gate (the `docs` arm). |
+| [scripts/gnn_conformance.py](scripts/gnn_conformance.py) | Pinned GNN conformance (the `gnn` arm). |
+| [scripts/gate_metrics.py](scripts/gate_metrics.py) | Measures the arms into `docs/_generated/GATE.md`. |
+| [.github/](.github/) | Issue/PR templates, the `gate` workflow, and the GNN pin. |
 | [.aii/config.yaml](.aii/config.yaml) | InstituteOS metadata sidecar. |
 
 ## Quality gate
 
-Before opening a pull request, run the documentation QA gate and the test
-suite:
+Before opening a pull request, run the gate:
 
 ```bash
-python3 scripts/docs_qa.py
-python -m pytest
+./gate all
 ```
 
-Both run automatically in CI (see the badges above).
+`all` is lint, documentation QA, and the full test suite. The `gnn` arm
+(`./gate gnn`) additionally needs network access and runs in its own CI job.
+Every arm runs from one entry point and CI calls the same arms; see
+[`docs/gate.md`](docs/gate.md) and the badge above.
 
 ## Provenance
 

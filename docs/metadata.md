@@ -28,8 +28,8 @@ InstituteOS platform: `python -m instituteos.platform.aii_sidecar.validate
 | `institute.maturity` | experimental \| wip \| released \| stable | `released` |
 | `institute.steward` | Stewarding body | `Active Inference Institute` |
 | `ecosystem.relations` | Cross-repo relations | `referenced-by` `ActiveInferenceInstitute/InstituteOS` (federated via the `.aii` manifest); `references` `docxology/ATLAS` (public reference fork, port origin), `ActiveInferenceInstitute/Generalized_Notation_Notation` (ecosystem notation for generative models; docs link its pinned integration guides), `ActiveInferenceInstitute/Active_Inference_Ontology` (controlled vocabulary; no identifier mapping), and `ActiveInferenceInstitute/AEOS` (domain ontology; no identifier mapping) |
-| `ecosystem.links` | Curated links | github, website (`https://www.activeinference.org`), docs (`docs/index.md`) |
-| `artifacts` | Declared artifacts | `src/atlas` (code), `tests` (code), `pyproject.toml` (code), `README.md` (doc), `docs/index.md` (doc), `CITATION.cff` (doc) |
+| `ecosystem.links` | Curated links | github, website (`https://www.activeinference.org`), docs (`docs/documentation-index.md`) |
+| `artifacts` | Declared artifacts | `src/atlas` (code), `tests` (code), `pyproject.toml` (code), `README.md` (doc), `docs/documentation-index.md` (doc), `CITATION.cff` (doc) |
 | `provenance.license` | License | `CC-BY-4.0` |
 | `provenance.citation.text` | Citation string | `Active Inference Institute — ATLAS.` |
 | `provenance.current_release` / `releases_manifest` | Release metadata | none (empty) |

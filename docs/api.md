@@ -105,6 +105,6 @@ and excludes them from `vault.notes`.
 Run the test suite from the repository root:
 
 ```bash
-pip install -e ".[test,viz,obsidian]"
-python -m pytest
+./gate setup
+./gate test
 ```
