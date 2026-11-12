@@ -141,7 +141,7 @@ def interpreter_label() -> str:
 def environment() -> list[tuple[str, str]]:
     return [
         ("Measured at (UTC)", dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")),
-        ("Commit", f"`{git_commit()}`"),
+        ("Recorded against commit", f"`{git_commit()}` plus the working tree at measurement"),
         ("Host", f"{platform.system()} {platform.release()} ({platform.machine()})"),
         ("Python", f"{platform.python_version()} (`{interpreter_label()}`)"),
         ("pytest", version_of("pytest")),
@@ -159,8 +159,9 @@ def render(rows: dict[str, dict | None], arms: list[tuple[str, str]]) -> str:
         "Wall-clock seconds for one run of each arm on the host below. The arms and",
         "their commands come from `./gate --list`; this page is the only place the",
         "measured numbers live, and it is rewritten by `./gate measure` rather than",
-        "edited by hand. `./gate docs` fails when the arm table here drifts from the",
-        "gate.",
+        "edited by hand. `./gate docs` fails when the arm set here drifts from the",
+        "gate. Each number is a point-in-time sample of the working tree named below,",
+        "so treat small differences between runs as noise.",
         "",
         "## Environment",
         "",

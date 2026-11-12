@@ -5,15 +5,16 @@
 Wall-clock seconds for one run of each arm on the host below. The arms and
 their commands come from `./gate --list`; this page is the only place the
 measured numbers live, and it is rewritten by `./gate measure` rather than
-edited by hand. `./gate docs` fails when the arm table here drifts from the
-gate.
+edited by hand. `./gate docs` fails when the arm set here drifts from the
+gate. Each number is a point-in-time sample of the working tree named below,
+so treat small differences between runs as noise.
 
 ## Environment
 
 | Field | Value |
 | --- | --- |
-| Measured at (UTC) | 2026-11-12 13:02 |
-| Commit | `fe35b9c` |
+| Measured at (UTC) | 2026-11-12 13:05 |
+| Recorded against commit | `22a202b` plus the working tree at measurement |
 | Host | Darwin 27.0.0 (arm64) |
 | Python | 3.13.11 (`./.venv/bin/python`) |
 | pytest | 9.2.0 |
@@ -24,11 +25,11 @@ gate.
 | Arm | Wall time (s) | Result | Command (as resolved on the measuring host) |
 | --- | --- | --- | --- |
 | `setup` | not measured | run outside this page | `.venv/bin/python -m pip install --disable-pip-version-check -e '.[dev,viz,obsidian]'` |
-| `lint` | 1.17 | ok | `.venv/bin/python -m flake8 src tests scripts` |
-| `docs` | 0.82 | ok | `.venv/bin/python scripts/docs_qa.py && .venv/bin/python scripts/gate_metrics.py --check` |
-| `fast` | 5.98 | ok | `.venv/bin/python -m pytest -m 'not slow'` |
-| `test` | 7.29 | ok | `.venv/bin/python -m pytest` |
-| `gnn` | 3.52 | ok | `.venv/bin/python scripts/gnn_conformance.py` |
+| `lint` | 1.85 | ok | `.venv/bin/python -m flake8 src tests scripts` |
+| `docs` | 0.83 | ok | `.venv/bin/python scripts/docs_qa.py && .venv/bin/python scripts/gate_metrics.py --check` |
+| `fast` | 4.57 | ok | `.venv/bin/python -m pytest -m 'not slow'` |
+| `test` | 8.11 | ok | `.venv/bin/python -m pytest` |
+| `gnn` | 3.89 | ok | `.venv/bin/python scripts/gnn_conformance.py` |
 
 `setup` is an install step rather than a check, so its duration depends on
 the local wheel cache and is not recorded here. `gnn` needs network access to
@@ -45,7 +46,7 @@ job, and `./gate measure --include-gnn` records it when a network is available.
 ## Not gated
 
 `./gate lint` selects only fatal-error codes (`.flake8`). Under flake8's full
-default selection the tree currently reports: 1152 findings (top codes — E501: 735, E128: 144, F401: 87, E402: 51, W292: 39, E226: 28).
+default selection the tree currently reports: 1154 findings (top codes — E501: 737, E128: 144, F401: 87, E402: 51, W292: 39, E226: 28).
 That debt is tracked in [TO-DO.md](../../TO-DO.md) and is not a gate failure.
 
 ## Verification
