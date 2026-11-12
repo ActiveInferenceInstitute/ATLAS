@@ -87,6 +87,13 @@ it. The arm then parses and type-checks every `*.gnn.md`
 sketch in the repository — or, as ATLAS currently has none, the pinned upstream
 `input/gnn_files/basics/static_perception.md` exemplar.
 
+The type check requires a literal `True` from `validate_gnn_files`. The pinned
+checker returns the pipeline exit sentinel instead of a boolean — `2`
+(`SUCCESS_WITH_WARNINGS`) means an invalid file **or** that no GNN file was
+found, and `2` is truthy — so any other result refuses the model and quotes the
+returned value in the error. The regression cases are in
+[`../tests/test_gnn_conformance.py`](../tests/test_gnn_conformance.py).
+
 Because the parser install and the exemplar fetch need network access, `gnn`
 is not part of `all`. `./gate measure --include-gnn` records it when a network
 is available. `scripts/gnn_conformance.py --no-install` requires the same
