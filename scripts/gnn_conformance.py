@@ -7,15 +7,14 @@ file, so the check has one definition.
 
 It reads ``.github/gnn-pin.json`` (schema ``gnn-importer-pin/v1``) and installs
 the pinned parser revision with ``--no-deps`` plus the runtime dependencies the
-parser imports, then parses and type-checks every ``*.gnn.md`` sketch in the
-repository.
+parser imports. The pinned release's shared importer reader validates the pin
+and pointer and identifies the sketches ATLAS parses and type-checks.
 
 An existing install is reused only when PEP 610 ``direct_url.json`` binds it to
 the pinned repository *and* the pinned commit. A version string is not
-provenance: another commit, a fork, or a wheel from an index can all report
-``5.0.3``. ``--no-install`` applies the same requirement and fails rather than
-keeping an already-importable but different parser. Provenance binds where the
-distribution was installed from, not the bytes on disk. When the repository carries no sketch, the pinned upstream
+provenance: another commit, a fork, or a wheel from an index can report the
+same version. ``--no-install`` applies the same requirement. Provenance binds
+the distribution's recorded source. When the reader finds no sketch, the pinned upstream
 ``input/gnn_files/basics/static_perception.md`` exemplar is checked instead:
 that is a pipeline and pin conformance baseline, not a claim that ATLAS
 contains a generative model.
@@ -33,6 +32,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -43,6 +43,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 PIN_PATH = ROOT / ".github" / "gnn-pin.json"
 SCHEMA = "gnn-importer-pin/v1"
 PARSER_REPOSITORY = "ActiveInferenceInstitute/Generalized_Notation_Notation"
+CONFORMANCE_WORKFLOW = ".github/workflows/gate.yml"
+CONFORMANCE_JOB = "gnn-conformance"
 # Runtime dependencies the pinned parser imports; CI installed them separately
 # because the parser itself is installed with --no-deps.
 PARSER_RUNTIME_DEPS = ("defusedxml", "psutil", "pyyaml")
@@ -52,10 +54,16 @@ class ConformanceError(RuntimeError):
     """A pin, parser, or model check failed."""
 
 
-def read_pin() -> dict:
-    if not PIN_PATH.is_file():
-        raise ConformanceError(f"missing pin file {PIN_PATH.relative_to(ROOT)}")
-    pin = json.loads(PIN_PATH.read_text(encoding="utf-8"))
+def read_bootstrap_pin() -> dict[str, str]:
+    """Read the exact release needed to install the shared importer reader."""
+    try:
+        pin = json.loads(PIN_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ConformanceError(
+            f"could not read {PIN_PATH.relative_to(ROOT)}: {exc}"
+        ) from exc
+    if not isinstance(pin, dict):
+        raise ConformanceError(f"{PIN_PATH.relative_to(ROOT)} must contain an object")
     if pin.get("schema") != SCHEMA:
         raise ConformanceError(
             f"{PIN_PATH.relative_to(ROOT)}: schema {pin.get('schema')!r} != {SCHEMA!r}"
@@ -65,10 +73,20 @@ def read_pin() -> dict:
             f"{PIN_PATH.relative_to(ROOT)}: repository {pin.get('repository')!r} "
             f"!= {PARSER_REPOSITORY!r}"
         )
-    for key in ("revision", "tag"):
-        if not pin.get(key):
-            raise ConformanceError(f"{PIN_PATH.relative_to(ROOT)}: missing {key!r}")
-    return pin
+    revision = pin.get("revision")
+    if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ConformanceError(
+            "GNN pin must record a full 40-character commit in revision"
+        )
+    tag = pin.get("tag")
+    release = (
+        re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", tag) if isinstance(tag, str) else None
+    )
+    if release is None or tuple(map(int, release.groups())) < (5, 1, 0):
+        raise ConformanceError(
+            "the shared importer reader requires GNN v5.1.0 or later"
+        )
+    return {"repository": PARSER_REPOSITORY, "revision": revision, "tag": tag}
 
 
 def parser_spec(pin: dict) -> str:
@@ -117,7 +135,7 @@ def normalize_repository(url: str) -> str | None:
     value = url.strip().lower()
     for prefix in ("git+https://", "https://"):
         if value.startswith(prefix):
-            value = value[len(prefix):]
+            value = value[len(prefix) :]
             break
     else:
         return None
@@ -136,33 +154,74 @@ def provenance_check(pin: dict) -> tuple[str | None, str]:
         return None, f"installed from {direct_url.get('url')!r} without git metadata"
     commit = vcs.get("commit_id")
     if commit != pin["revision"]:
-        return commit, f"installed commit {commit!r} is not the pinned revision {pin['revision']!r}"
+        return (
+            commit,
+            f"installed commit {commit!r} is not the pinned revision {pin['revision']!r}",
+        )
     repository = normalize_repository(str(direct_url.get("url", "")))
     expected_repository = f"github.com/{pin['repository']}".lower()
     if repository != expected_repository:
-        return commit, f"installed from {repository!r}, pin expects {expected_repository!r}"
+        return (
+            commit,
+            f"installed from {repository!r}, pin expects {expected_repository!r}",
+        )
     return commit, ""
 
 
 def install_parser(pin: dict) -> None:
     pip = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check"]
     subprocess.check_call([*pip, *PARSER_RUNTIME_DEPS])
-    # --force-reinstall: pip treats an installed 5.0.3 from another commit as
+    # --force-reinstall: pip treats the same version from another commit as
     # already satisfying the requirement, which would keep the wrong bytes.
     subprocess.check_call([*pip, "--no-deps", "--force-reinstall", parser_spec(pin)])
 
 
-def import_parser() -> tuple[str, object, object, object]:
+def import_parser() -> tuple[str, object, object, object, object]:
     try:
         from gnn import __version__ as gnn_version
+        from gnn.importers import check_importer
         from gnn.parsers.basic import parse_gnn_formal, validate_gnn_syntax
         from gnn.type_checker import GNNTypeChecker
     except ImportError as exc:  # pragma: no cover - environment failure
         raise ConformanceError(
-            f"pinned GNN parser is not importable ({exc}); "
+            f"pinned GNN parser or importer reader is not importable ({exc}); "
             "run without --no-install to install it"
         ) from exc
-    return gnn_version, parse_gnn_formal, validate_gnn_syntax, GNNTypeChecker
+    return (
+        gnn_version,
+        check_importer,
+        parse_gnn_formal,
+        validate_gnn_syntax,
+        GNNTypeChecker,
+    )
+
+
+def importer_specs(pin, check_importer) -> list[pathlib.Path]:
+    report = check_importer(
+        ROOT,
+        pin_path=PIN_PATH,
+        expected_repository=pin["repository"],
+        expected_commit=pin["revision"],
+        expected_tag=pin["tag"],
+        require_pointer=True,
+        pointer_workflow=CONFORMANCE_WORKFLOW,
+        pointer_job=CONFORMANCE_JOB,
+        validate_specs=False,
+    )
+    if not report["ok"]:
+        errors = [
+            item["message"] for item in report["findings"] if item["level"] == "error"
+        ]
+        raise ConformanceError(
+            "The shared GNN importer check failed. " + ". ".join(errors)
+        )
+    observed_pin = report["pin"]
+    if (
+        observed_pin["schema"] != SCHEMA
+        or observed_pin["repository"] != pin["repository"]
+    ):
+        raise ConformanceError("GNN pin declaration changed after bootstrap")
+    return [ROOT / path for path in report["specs"]["files"]]
 
 
 def check_model(
@@ -186,7 +245,9 @@ def check_model(
         # files had type/consistency problems, or no GNN file was found), and
         # ``False`` (exit 1). Only a literal ``True`` is a clean pass: ``2`` is
         # truthy, so a truthiness test would report an invalid model as verified.
-        result = GNNTypeChecker().validate_gnn_files(model_dir, pathlib.Path(output_dir))
+        result = GNNTypeChecker().validate_gnn_files(
+            model_dir, pathlib.Path(output_dir)
+        )
         if result is not True:
             raise ConformanceError(
                 f"GNN type checker rejected {model.name}: "
@@ -204,8 +265,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        pin = read_pin()
-        expected_version = pin["tag"].removeprefix("v")
+        pin = read_bootstrap_pin()
         commit, problem = provenance_check(pin)
         if problem and args.no_install:
             raise ConformanceError(
@@ -217,14 +277,20 @@ def main(argv: list[str] | None = None) -> int:
             commit, problem = provenance_check(pin)
             if problem:
                 raise ConformanceError(f"after installing the pinned spec: {problem}")
-        gnn_version, parse_gnn_formal, validate_gnn_syntax, GNNTypeChecker = import_parser()
+        (
+            gnn_version,
+            check_importer,
+            parse_gnn_formal,
+            validate_gnn_syntax,
+            GNNTypeChecker,
+        ) = import_parser()
         expected_version = pin["tag"].removeprefix("v")
         if gnn_version != expected_version:
             raise ConformanceError(
                 f"installed GNN {gnn_version!r} does not match {pin['tag']!r}"
             )
 
-        sketches = sorted(ROOT.rglob("*.gnn.md"))
+        sketches = importer_specs(pin, check_importer)
         if sketches:
             for sketch in sketches:
                 check_model(

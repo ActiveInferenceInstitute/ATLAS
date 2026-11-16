@@ -86,7 +86,7 @@ generative-model notation and no ontology mapping.
 - Generative-model specification: GNN —
   <https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation>,
   integration guides at `docs/gnn/integration/` in the pinned revision
-  `8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1` (v5.0.3).
+  `75c834bd8519dc7b5adc4d24f16bf393cfd1ecdf` (v5.1.0).
 - Shared controlled vocabulary: Active_Inference_Ontology —
   <https://github.com/ActiveInferenceInstitute/Active_Inference_Ontology>.
 - Domain ontology for scientific ecosystems: AEOS —

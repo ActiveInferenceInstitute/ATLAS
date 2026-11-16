@@ -60,7 +60,7 @@ repositories, and where it does not. Every claim below refers to the code in
   annotation surface. Generative-model specification belongs to
   [GNN](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation)
   (see its
-  [integration guides](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/tree/8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1/docs/gnn/integration));
+  [integration guides](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/tree/75c834bd8519dc7b5adc4d24f16bf393cfd1ecdf/docs/gnn/integration));
   the shared controlled vocabulary belongs to
   [Active_Inference_Ontology](https://github.com/ActiveInferenceInstitute/Active_Inference_Ontology);
   the domain ontology of scientific entities and interaction motifs belongs to

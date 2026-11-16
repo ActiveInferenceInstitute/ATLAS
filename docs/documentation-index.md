@@ -65,7 +65,7 @@ tree is for and how to verify it — is [`README.md`](README.md).
 - [Repository on GitHub](https://github.com/ActiveInferenceInstitute/ATLAS)
 - [GNN](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation) —
   notation and pipeline for active inference generative models; see the
-  [integration guides](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/tree/8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1/docs/gnn/integration)
+  [integration guides](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/tree/75c834bd8519dc7b5adc4d24f16bf393cfd1ecdf/docs/gnn/integration)
 - [Active_Inference_Ontology](https://github.com/ActiveInferenceInstitute/Active_Inference_Ontology) —
   controlled vocabulary of active inference concepts
 - [AEOS](https://github.com/ActiveInferenceInstitute/AEOS) — Active Entity

@@ -1,7 +1,7 @@
 # AII sidecar — InstituteOS metadata. Schema: aii_platform.aii_sidecar
 meta:
   sidecar_version: 1.2.1
-  updated: '2026-11-12'
+  updated: '2026-11-15'
 repo:
   name: ATLAS
   slug: atlas
@@ -23,7 +23,7 @@ ecosystem:
     note: Public reference fork; the initial implementation was ported from it.
   - repo: ActiveInferenceInstitute/Generalized_Notation_Notation
     note: Ecosystem notation for active inference generative models; the docs link
-      its integration guides at the pinned v5.0.3 revision. ATLAS carries no GNN model
+      its integration guides at the pinned v5.1.0 revision. ATLAS carries no GNN model
       and no GNN dependency.
   - repo: ActiveInferenceInstitute/Active_Inference_Ontology
     note: Controlled vocabulary of active inference concepts; the docs link it. No

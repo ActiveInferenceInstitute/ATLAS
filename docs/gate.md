@@ -76,16 +76,17 @@ installs with `pip` from `pyproject.toml` and has no `uv` lock file.
 `.github/GNN.md` records what the `gnn` arm parses. It reads the canonical pin
 [`../.github/gnn-pin.json`](../.github/gnn-pin.json) (schema
 `gnn-importer-pin/v1`), which pins
-`ActiveInferenceInstitute/Generalized_Notation_Notation` at `v5.0.3`
-(`8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1`). The arm installs the pinned
+`ActiveInferenceInstitute/Generalized_Notation_Notation` at `v5.1.0`
+(`75c834bd8519dc7b5adc4d24f16bf393cfd1ecdf`). The arm installs the pinned
 parser with `--no-deps` plus the runtime modules it imports, and verifies what
 is installed against the pin: the version must match `tag`, and PEP 610
 `direct_url.json` must name the pinned repository and commit. An existing
 install is reused only when that provenance matches; otherwise the pinned spec
 is force-reinstalled — a version string is not proof of which commit produced
-it. The arm then parses and type-checks every `*.gnn.md`
-sketch in the repository — or, as ATLAS currently has none, the pinned upstream
-`input/gnn_files/basics/static_perception.md` exemplar.
+it. GNN's shared importer reader checks the pin and pointer and selects the
+sketches. The arm then parses and type-checks them. When the reader finds no
+sketch, the arm uses the upstream `input/gnn_files/basics/static_perception.md`
+exemplar at the pinned commit.
 
 The type check requires a literal `True` from `validate_gnn_files`. The pinned
 checker returns the pipeline exit sentinel instead of a boolean — `2`
