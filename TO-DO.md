@@ -1,8 +1,8 @@
-# ATLAS — Documentation To-Do
+# ATLAS — To-Do
 
-Last reviewed: 2026-11-12 (eighth pass: the `gnn` arm's result handling is
-fail-closed; seventh pass: sidecar documentation paths resolved relative to
-`.aii/`, plus the landing commit for each 2026-11-12 pass).
+Last reviewed: 2026-11-13. Local runtime/ownership repairs below are verified
+source changes, not a release or merge. Earlier implementation and measurement
+records retain their original provenance.
 
 Scope definitions:
 
@@ -23,6 +23,28 @@ items are listed at the end.
   when the reader finds no local models.
 - [ ] After accepting the Publishing lead's pin update, verify the member
   pin and its digest again against the lead's published revision.
+
+## Local source repairs (2026-11-13)
+
+- [x] Preserve repeated relationship occurrences and explicit edges across record
+      replacement; reconcile authored hierarchy without mutating declarations.
+- [x] Reconcile mutable pattern/query derived state; retain cycle-aware hierarchy
+      analysis, exact RFI resolution and terminal prompt accounting.
+- [x] Persist Obsidian note ownership, preserve manual state, replace owned
+      relationships and report partial export without overwriting ordinary notes.
+- [x] Share detached graph serialization across exports and retain structured
+      values without mutating live records.
+- [x] Preserve caller random state, render empty reports, use actual directed
+      animation-frame density and reconcile effective visualization topology.
+- [x] Repair overlapping overview labels found during rendered-image acceptance.
+- [x] Restore ordinary collection of the eight constructor-blocked classes and
+      fresh setup in standalone callers.
+- [x] Verify focused state/export/visualization regressions and restored class
+      execution on Python 3.13.11; exercise all five standalone entry points,
+      inspect actual PNG/GIF output, and pass the unchanged fatal-code lint arm.
+
+These focused checks do not claim full-suite, slow-performance, network GNN or
+hosted-CI acceptance. Generated historical measurements were not restamped.
 
 ## GNN result fail-closed (2026-11-12, PR #14)
 
@@ -176,15 +198,13 @@ Landed in `0754b63`.
 
 ## Open / deferred
 
-- Lint debt. The `lint` arm (`.flake8`) selects only fatal-error codes
-  (`E9`, `F63`, `F7`, `F82`) because the tree carries pre-existing style debt;
-  the current count under flake8's full default selection is recorded in
-  [`docs/_generated/GATE.md`](docs/_generated/GATE.md). Paying it down is a
-  separate pass: unused imports and locals (`F401`, `F841`), bare `except`
-  (`E722`), and line/indent style (`E501`, `E128`). Do not widen `.flake8`
-  before the debt is gone. Owner: whoever takes the style pass; nothing
-  external blocks it — it is deliberately not a gate failure, so it never
-  turns `main` red.
+- Lint debt. The unchanged `lint` arm passes its fatal-error selection
+  (`E9`, `F63`, `F7`, `F82`) over `src tests scripts`. Source-inspected cleanup
+  removed demonstrated unused imports/locals, bare catches and line/indent
+  defects, but remaining full-default offense counts are unmeasured.
+  [`docs/_generated/GATE.md`](docs/_generated/GATE.md) is historical evidence,
+  not a current count. Keep this item open and do not widen `.flake8` before a
+  fresh full-default inventory establishes the remaining work.
 - Types. `mypy` is declared in the `dev` extra but nothing configures or runs
   it, and the package is unannotated. A types arm needs a configuration
   decision and an annotation pass first; see [`docs/gate.md`](docs/gate.md).
@@ -209,10 +229,8 @@ Landed in `0754b63`.
   (the fork never published; packaging metadata is ready).
 - Optional: upstream sync with the reference fork if it ever diverges again
   (last pushed 2025-06-15; the port took its current HEAD).
-- Optional: `atlas.visualization` (about 3,100 lines across five modules)
-  still has parallel figure helpers; a consolidation pass would reduce it
-  but is not attempted here because the module surface is not exercised by
-  any consumer contract. The parallel color-scheme helpers were consolidated
-  (2026-11-06): the five scheme dictionaries now live as named constants in
-  `atlas/visualization/common.py`, each class references the constants, and
-  the values are unchanged (test suite green).
+- Optional: further visualization helper consolidation. Focused figure,
+  animation, hierarchy and export contracts now exercise the surface; any
+  consolidation must preserve outputs, simulation labeling and caller random
+  state. The five color-scheme dictionaries remain shared named constants in
+  `atlas/visualization/common.py`, with their values unchanged.

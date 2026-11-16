@@ -2,7 +2,8 @@
 """
 ATLAS Test Configuration
 
-This module provides configuration and discovery utilities for the ATLAS test suite.
+This module provides configuration and discovery utilities for the ATLAS
+test suite.
 It handles test discovery and provides a unified interface for running tests.
 """
 
@@ -114,7 +115,9 @@ class TestConfig:
         except Exception:
             return False
 
-    def run_file_with_python(self, file_path: Path, args: Optional[List[str]] = None) -> Dict[str, Any]:
+    def run_file_with_python(
+        self, file_path: Path, args: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """
         Run a Python file and return execution results.
 
@@ -163,7 +166,9 @@ class TestConfig:
                 'file': str(file_path)
             }
 
-    def run_pytest_on_directory(self, directory: Path, output_file: Optional[Path] = None) -> Dict[str, Any]:
+    def run_pytest_on_directory(
+        self, directory: Path, output_file: Optional[Path] = None
+    ) -> Dict[str, Any]:
         """
         Run pytest on a directory.
 
@@ -180,7 +185,9 @@ class TestConfig:
                 'error': 'pytest not available'
             }
 
-        cmd = [sys.executable, '-m', 'pytest', str(directory), '-v', '--tb=short']
+        cmd = [
+            sys.executable, '-m', 'pytest', str(directory), '-v', '--tb=short'
+        ]
 
         if output_file:
             cmd.extend(['--junitxml', str(output_file)])
@@ -275,7 +282,9 @@ class TestConfig:
 
         return summary
 
-    def run_all_tests(self, output_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def run_all_tests(
+        self, output_dir: Optional[Path] = None
+    ) -> Dict[str, Any]:
         """
         Run all available tests using the best available method.
 
@@ -348,18 +357,22 @@ class TestConfig:
 # Global test configuration instance
 test_config = TestConfig()
 
+
 # Convenience functions for easy access
 def get_test_files() -> Dict[str, Any]:
     """Get all test files."""
     return test_config.get_test_files()
 
+
 def get_test_summary() -> Dict[str, Any]:
     """Get test summary."""
     return test_config.get_test_summary()
 
+
 def run_all_tests(output_dir: Optional[Path] = None) -> Dict[str, Any]:
     """Run all tests."""
     return test_config.run_all_tests(output_dir)
+
 
 def can_import_pytest() -> bool:
     """Check if pytest is available."""

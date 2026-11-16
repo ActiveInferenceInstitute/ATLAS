@@ -41,7 +41,7 @@ NETWORK_COLORS = {
 # PatternVisualizer: colors for pattern hierarchy levels.
 HIERARCHY_COLORS = {
     'root': '#ff6b6b',       # Red
-    'intermediate': '#4ecdc4', # Teal
+    'intermediate': '#4ecdc4',  # Teal
     'leaf': '#45b7d1',       # Blue
     'orphan': '#96ceb4'      # Green
 }

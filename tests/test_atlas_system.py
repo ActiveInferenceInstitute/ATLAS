@@ -3,12 +3,10 @@
 Comprehensive test suite for ATLAS Knowledge Management System.
 """
 
-import pytest
 import sys
 import os
 from datetime import datetime
-from unittest.mock import Mock, patch
-from typing import Optional
+import networkx as nx
 
 # Add src to path for imports in test environment
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -19,17 +17,15 @@ from atlas.entities.attribute import Attribute
 from atlas.patterns.pattern import Pattern
 from atlas.patterns.pattern_engine import PatternEngine
 from atlas.queries.iquery import iQuery, QueryPriority, QueryStatus
-from atlas.interfaces.prompt_interface import SimpleTransformInterface, create_identity_interface
+from atlas.interfaces.prompt_interface import (
+    SimpleTransformInterface,
+    create_identity_interface,
+)
 from atlas.utils.helpers import generate_id, timestamp_now
 
 
 class TestATLASCore:
     """Test suite for ATLAS core functionality."""
-
-    def __init__(self) -> None:
-        """Initialize test class with instance attributes."""
-        self.config: Optional[ATLASConfig] = None
-        self.atlas: Optional[ATLASEngine] = None
 
     def setup_method(self) -> None:
         """Set up test fixtures."""
@@ -147,10 +143,13 @@ class TestATLASCore:
         assert self.atlas is not None
         self.atlas.add_entity(entity.id, entity.to_dict())
 
-        # Test export - the export may return empty string if no edges exist
-        # This is valid behavior, so we just check it doesn't raise an exception
+        # An ordinary isolated node must produce readable GraphML, not failure.
         export_result = self.atlas.export_graph("graphml")
-        assert isinstance(export_result, str)  # Should return a string (even if empty)
+        assert isinstance(export_result, str)
+        assert export_result
+        exported_graph = nx.parse_graphml(export_result)
+        assert set(exported_graph) == {entity.id}
+        assert exported_graph.number_of_edges() == 0
 
 
 class TestEntity:
@@ -306,10 +305,6 @@ class TestPattern:
 class TestPatternEngine:
     """Test suite for Pattern Engine functionality."""
 
-    def __init__(self) -> None:
-        """Initialize test class with proper typing."""
-        self.pattern_engine: Optional[PatternEngine] = None
-
     def setup_method(self) -> None:
         """Set up test fixtures."""
         self.pattern_engine = PatternEngine()
@@ -318,8 +313,7 @@ class TestPatternEngine:
         """Test pattern engine initialization."""
         assert self.pattern_engine is not None
         assert len(self.pattern_engine.patterns) == 0
-        # PatternEngine doesn't have pattern_hierarchy attribute, it has get_pattern_hierarchy method
-        # We can test that the method exists and works
+        # Hierarchy lookup must return empty sets for an unknown pattern.
         hierarchy = self.pattern_engine.get_pattern_hierarchy("non_existent")
         assert isinstance(hierarchy, dict)
         assert 'ancestors' in hierarchy
@@ -356,17 +350,23 @@ class TestPatternEngine:
         self.pattern_engine.add_pattern(pattern1)
         self.pattern_engine.add_pattern(pattern2)
 
-        similarity = self.pattern_engine.calculate_pattern_similarity(pattern1.id, pattern2.id)
+        similarity = self.pattern_engine.calculate_pattern_similarity(
+            pattern1.id, pattern2.id
+        )
         assert isinstance(similarity, float)
         assert 0.0 <= similarity <= 1.0
-        assert similarity > 0.0  # Should have some similarity due to shared items
+        assert similarity > 0.0  # Shared items provide some similarity.
 
     def test_pattern_usage_analysis(self) -> None:
         """Test pattern usage analysis."""
         # Create test patterns with hierarchy
         root_pattern = Pattern(pattern_id="root", qkit=["q1"])
-        child_pattern = Pattern(pattern_id="child", parents=["root"], qkit=["q2"])
-        leaf_pattern = Pattern(pattern_id="leaf", parents=["child"], qkit=["q3"])
+        child_pattern = Pattern(
+            pattern_id="child", parents=["root"], qkit=["q2"]
+        )
+        leaf_pattern = Pattern(
+            pattern_id="leaf", parents=["child"], qkit=["q3"]
+        )
 
         assert self.pattern_engine is not None
         self.pattern_engine.add_pattern(root_pattern)
@@ -413,7 +413,7 @@ class TestAttribute:
         # Add validation rules for testing
         attr.add_validation_rule("range", {"min": 0, "max": 100})
 
-        # Test valid values (using private method as validation logic is internal)
+        # Validation logic is internal; exercise its boundary values.
         assert attr._validate_value(50) is True
         assert attr._validate_value(0) is True
         assert attr._validate_value(100) is True
@@ -472,15 +472,15 @@ class TestiQuery:
 
         # Test execution start
         assert query.start_execution() is True
-        assert query.status == QueryStatus.EXECUTING  # Uses status, not execution_status
-        assert query.started_at is not None  # Uses started_at, not execution_start_time
+        assert query.status == QueryStatus.EXECUTING
+        assert query.started_at is not None
 
         # Test execution completion
         results = [{"result": "result1"}, {"result": "result2"}]
         assert query.complete_execution(results) is True
         assert query.status == QueryStatus.COMPLETED  # Uses status
-        assert len(query.results) == 2  # Results are stored in results attribute
-        assert query.completed_at is not None  # Uses completed_at, not execution_end_time
+        assert len(query.results) == 2
+        assert query.completed_at is not None
 
     def test_iquery_serialization(self) -> None:
         """Test iQuery serialization."""
@@ -571,12 +571,6 @@ class TestHelpers:
 class TestIntegration:
     """Integration tests for the complete ATLAS system."""
 
-    def __init__(self) -> None:
-        """Initialize test class with proper typing."""
-        self.config: Optional[ATLASConfig] = None
-        self.atlas: Optional[ATLASEngine] = None
-        self.pattern_engine: Optional[PatternEngine] = None
-
     def setup_method(self) -> None:
         """Set up integration test fixtures."""
         self.config = ATLASConfig(
@@ -665,14 +659,17 @@ if __name__ == "__main__":
         print(f"\n--- Running {test_class.__name__} ---")
 
         try:
-            instance = test_class()
-            test_methods = [method for method in dir(instance) if method.startswith('test_')]
+            test_methods = [
+                method for method in dir(test_class)
+                if method.startswith('test_')
+            ]
 
             for test_method_name in test_methods:
                 total_tests += 1
                 print(f"  Running {test_method_name}...", end=" ")
 
                 try:
+                    instance = test_class()
                     # Setup method if available
                     if hasattr(instance, 'setup_method'):
                         instance.setup_method()

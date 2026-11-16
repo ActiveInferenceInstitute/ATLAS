@@ -6,7 +6,7 @@ and analysis capabilities for the ATLAS pattern language system.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Set, Tuple
+from typing import Dict, List, Any, Set, Tuple, FrozenSet
 from collections import defaultdict
 import networkx as nx
 
@@ -30,7 +30,9 @@ class PatternEngine:
 
         # Pattern analysis caches
         self._inheritance_cache: Dict[str, Set[str]] = {}
-        self._similarity_cache: Dict[Tuple[str, str], float] = {}
+        self._similarity_cache: Dict[
+            Tuple[str, str], Tuple[Tuple[FrozenSet[str], ...], float]
+        ] = {}
 
         # Pattern discovery state
         self.pattern_clusters: Dict[str, Set[str]] = defaultdict(set)
@@ -51,19 +53,7 @@ class PatternEngine:
         try:
             self.patterns[pattern.id] = pattern
 
-            # Add to pattern graph
-            self.pattern_graph.add_node(pattern.id, pattern=pattern)
-
-            # Add parent-child relationships
-            for parent_id in pattern.parents:
-                if parent_id in self.patterns:
-                    self.pattern_graph.add_edge(parent_id, pattern.id, relation='parent_of')
-
-            for child_id in pattern.children:
-                if child_id in self.patterns:
-                    self.pattern_graph.add_edge(pattern.id, child_id, relation='parent_of')
-
-            # Clear caches
+            self._reconcile_hierarchy()
             self._clear_caches()
 
             logger.info(f"Added pattern {pattern.id} to engine")
@@ -79,11 +69,7 @@ class PatternEngine:
             if pattern_id in self.patterns:
                 del self.patterns[pattern_id]
 
-                # Remove from graph
-                if self.pattern_graph.has_node(pattern_id):
-                    self.pattern_graph.remove_node(pattern_id)
-
-                # Clear caches
+                self._reconcile_hierarchy()
                 self._clear_caches()
 
                 logger.info(f"Removed pattern {pattern_id} from engine")
@@ -93,6 +79,47 @@ class PatternEngine:
         except Exception as e:
             logger.error(f"Failed to remove pattern {pattern_id}: {e}")
             return False
+
+    def _reconcile_hierarchy(self) -> None:
+        """Reconcile current declarations without rewriting their owners."""
+        edges = set()
+        for pattern_id, pattern in self.patterns.items():
+            edges.update(
+                (parent_id, pattern_id)
+                for parent_id in pattern.parents if parent_id in self.patterns
+            )
+            edges.update(
+                (pattern_id, child_id)
+                for child_id in pattern.children if child_id in self.patterns
+            )
+
+        current_edges = set(self.pattern_graph.edges())
+        topology_changed = (
+            set(self.pattern_graph) != set(self.patterns)
+            or current_edges != edges
+        )
+        self.pattern_graph.remove_nodes_from(
+            set(self.pattern_graph) - self.patterns.keys()
+        )
+        for pattern_id, pattern in self.patterns.items():
+            self.pattern_graph.add_node(pattern_id, pattern=pattern)
+        self.pattern_graph.remove_edges_from(current_edges - edges)
+        self.pattern_graph.add_edges_from(
+            edges - current_edges, relation='parent_of'
+        )
+        if topology_changed:
+            self._clear_caches()
+
+    def get_pattern_hierarchy_graph(self) -> nx.DiGraph:
+        """Return detached effective topology for current registered patterns.
+
+        Each record owns its parents/children declarations. Missing endpoints
+        remain in those lists until registered; they do not create graph nodes.
+        Direct list edits are reconciled here and at other analysis boundaries.
+        Pattern objects in node attributes remain the registered live objects.
+        """
+        self._reconcile_hierarchy()
+        return self.pattern_graph.copy()
 
     def get_pattern_hierarchy(self, pattern_id: str) -> Dict[str, Set[str]]:
         """
@@ -104,31 +131,29 @@ class PatternEngine:
         Returns:
             Dictionary with 'ancestors' and 'descendants' sets
         """
-        if pattern_id not in self.patterns:
-            return {'ancestors': set(), 'descendants': set()}
-
         try:
-            ancestors = set()
-            descendants = set()
+            self._reconcile_hierarchy()
+            if pattern_id not in self.patterns:
+                return {'ancestors': set(), 'descendants': set()}
 
-            # Get all ancestors (recursive)
-            for ancestor in nx.ancestors(self.pattern_graph, pattern_id):
-                ancestors.add(ancestor)
-
-            # Get all descendants (recursive)
-            for descendant in nx.descendants(self.pattern_graph, pattern_id):
-                descendants.add(descendant)
-
+            if pattern_id not in self._inheritance_cache:
+                self._inheritance_cache[pattern_id] = nx.ancestors(
+                    self.pattern_graph, pattern_id
+                )
             return {
-                'ancestors': ancestors,
-                'descendants': descendants
+                'ancestors': set(self._inheritance_cache[pattern_id]),
+                'descendants': nx.descendants(self.pattern_graph, pattern_id)
             }
 
         except Exception as e:
-            logger.error(f"Failed to get hierarchy for pattern {pattern_id}: {e}")
+            logger.error(
+                f"Failed to get hierarchy for pattern {pattern_id}: {e}"
+            )
             return {'ancestors': set(), 'descendants': set()}
 
-    def calculate_pattern_similarity(self, pattern1_id: str, pattern2_id: str) -> float:
+    def calculate_pattern_similarity(
+        self, pattern1_id: str, pattern2_id: str
+    ) -> float:
         """
         Calculate similarity between two patterns.
 
@@ -139,55 +164,80 @@ class PatternEngine:
         Returns:
             Similarity score between 0.0 and 1.0
         """
+        self._reconcile_hierarchy()
         # Handle self-similarity case
         if pattern1_id == pattern2_id:
             return 1.0
 
-        cache_key: Tuple[str, str] = tuple(sorted([pattern1_id, pattern2_id]))
-        if cache_key in self._similarity_cache:
-            return self._similarity_cache[cache_key]
-
-        if pattern1_id not in self.patterns or pattern2_id not in self.patterns:
+        if (
+            pattern1_id not in self.patterns
+            or pattern2_id not in self.patterns
+        ):
             return 0.0
 
         try:
-            pattern1 = self.patterns[pattern1_id]
-            pattern2 = self.patterns[pattern2_id]
+            cache_key = tuple(sorted((pattern1_id, pattern2_id)))
+            pattern1 = self.patterns[cache_key[0]]
+            pattern2 = self.patterns[cache_key[1]]
+
+            # Snapshot every mutable input before accepting a cached score.
+            qkit1_set = frozenset(pattern1.qkit)
+            qkit2_set = frozenset(pattern2.qkit)
+            attrs1_keys = frozenset(pattern1.attributes)
+            attrs2_keys = frozenset(pattern2.attributes)
+            hier1 = self.get_pattern_hierarchy(cache_key[0])
+            hier2 = self.get_pattern_hierarchy(cache_key[1])
+            inputs = (
+                qkit1_set, qkit2_set, attrs1_keys, attrs2_keys,
+                frozenset(hier1['ancestors']), frozenset(hier2['ancestors'])
+            )
+            cached = self._similarity_cache.get(cache_key)
+            if cached is not None and cached[0] == inputs:
+                return cached[1]
 
             # QKit similarity
-            qkit1_set = set(pattern1.qkit)
-            qkit2_set = set(pattern2.qkit)
             qkit_intersection = len(qkit1_set & qkit2_set)
             qkit_union = len(qkit1_set | qkit2_set)
-            qkit_similarity = qkit_intersection / qkit_union if qkit_union > 0 else 1.0  # If both empty, consider similar
+            qkit_similarity = (
+                qkit_intersection / qkit_union if qkit_union > 0 else 1.0
+            )
 
             # Attribute similarity
-            attrs1_keys = set(pattern1.attributes.keys())
-            attrs2_keys = set(pattern2.attributes.keys())
             attr_intersection = len(attrs1_keys & attrs2_keys)
             attr_union = len(attrs1_keys | attrs2_keys)
-            attr_similarity = attr_intersection / attr_union if attr_union > 0 else 1.0  # If both empty, consider similar
+            attr_similarity = (
+                attr_intersection / attr_union if attr_union > 0 else 1.0
+            )
 
             # Hierarchy similarity
-            hier1 = self.get_pattern_hierarchy(pattern1_id)
-            hier2 = self.get_pattern_hierarchy(pattern2_id)
             hier_intersection = len(hier1['ancestors'] & hier2['ancestors'])
             hier_union = len(hier1['ancestors'] | hier2['ancestors'])
-            hier_similarity = hier_intersection / hier_union if hier_union > 0 else 1.0  # If both empty, consider similar
+            hier_similarity = (
+                hier_intersection / hier_union if hier_union > 0 else 1.0
+            )
 
             # Weighted average
-            similarity = (0.5 * qkit_similarity + 0.3 * attr_similarity + 0.2 * hier_similarity)
+            similarity = (
+                0.5 * qkit_similarity
+                + 0.3 * attr_similarity
+                + 0.2 * hier_similarity
+            )
 
             # Cache result
-            self._similarity_cache[cache_key] = similarity
+            self._similarity_cache[cache_key] = (inputs, similarity)
 
             return similarity
 
         except Exception as e:
-            logger.error(f"Failed to calculate similarity between {pattern1_id} and {pattern2_id}: {e}")
+            logger.error(
+                f"Failed to calculate similarity between {pattern1_id} and "
+                f"{pattern2_id}: {e}"
+            )
             return 0.0
 
-    def find_similar_patterns(self, pattern_id: str, threshold: float = 0.7) -> List[Tuple[str, float]]:
+    def find_similar_patterns(
+        self, pattern_id: str, threshold: float = 0.7
+    ) -> List[Tuple[str, float]]:
         """
         Find patterns similar to the given pattern.
 
@@ -198,6 +248,7 @@ class PatternEngine:
         Returns:
             List of (pattern_id, similarity_score) tuples
         """
+        self._reconcile_hierarchy()
         if pattern_id not in self.patterns:
             return []
 
@@ -205,7 +256,9 @@ class PatternEngine:
 
         for other_id in self.patterns:
             if other_id != pattern_id:
-                similarity = self.calculate_pattern_similarity(pattern_id, other_id)
+                similarity = self.calculate_pattern_similarity(
+                    pattern_id, other_id
+                )
                 if similarity >= threshold:
                     similar_patterns.append((other_id, similarity))
 
@@ -214,7 +267,9 @@ class PatternEngine:
 
         return similar_patterns
 
-    def detect_pattern_clusters(self, similarity_threshold: float = 0.6) -> Dict[str, Set[str]]:
+    def detect_pattern_clusters(
+        self, similarity_threshold: float = 0.6
+    ) -> Dict[str, Set[str]]:
         """
         Detect clusters of similar patterns.
 
@@ -225,6 +280,7 @@ class PatternEngine:
             Dictionary mapping cluster IDs to sets of pattern IDs
         """
         try:
+            self._reconcile_hierarchy()
             # Create similarity graph
             similarity_graph = nx.Graph()
             similarity_graph.add_nodes_from(self.patterns.keys())
@@ -233,13 +289,19 @@ class PatternEngine:
             for pattern1_id in self.patterns:
                 for pattern2_id in self.patterns:
                     if pattern1_id < pattern2_id:  # Avoid duplicates
-                        similarity = self.calculate_pattern_similarity(pattern1_id, pattern2_id)
+                        similarity = self.calculate_pattern_similarity(
+                            pattern1_id, pattern2_id
+                        )
                         if similarity >= similarity_threshold:
-                            similarity_graph.add_edge(pattern1_id, pattern2_id, weight=similarity)
+                            similarity_graph.add_edge(
+                                pattern1_id, pattern2_id, weight=similarity
+                            )
 
             # Find connected components as clusters
             clusters = {}
-            for i, component in enumerate(nx.connected_components(similarity_graph)):
+            for i, component in enumerate(
+                nx.connected_components(similarity_graph)
+            ):
                 cluster_id = f"cluster_{i}"
                 clusters[cluster_id] = component
 
@@ -250,7 +312,9 @@ class PatternEngine:
             logger.error(f"Failed to detect pattern clusters: {e}")
             return {}
 
-    def suggest_pattern_merges(self, similarity_threshold: float = 0.8) -> List[Dict[str, Any]]:
+    def suggest_pattern_merges(
+        self, similarity_threshold: float = 0.8
+    ) -> List[Dict[str, Any]]:
         """
         Suggest pattern merges based on high similarity.
 
@@ -260,21 +324,31 @@ class PatternEngine:
         Returns:
             List of merge suggestions with pattern pairs and reasons
         """
+        self._reconcile_hierarchy()
         suggestions = []
 
         for pattern1_id in self.patterns:
-            similar = self.find_similar_patterns(pattern1_id, similarity_threshold)
+            similar = self.find_similar_patterns(
+                pattern1_id, similarity_threshold
+            )
             for pattern2_id, similarity in similar:
                 if pattern1_id < pattern2_id:  # Avoid duplicates
                     suggestion = {
                         'pattern1': pattern1_id,
                         'pattern2': pattern2_id,
                         'similarity': similarity,
-                        'reason': f"High similarity ({similarity:.2f}) suggests potential merge",
-                        'common_qkit': list(set(self.patterns[pattern1_id].qkit) &
-                                          set(self.patterns[pattern2_id].qkit)),
-                        'common_attributes': list(set(self.patterns[pattern1_id].attributes.keys()) &
-                                                set(self.patterns[pattern2_id].attributes.keys()))
+                        'reason': (
+                            f"High similarity ({similarity:.2f}) suggests "
+                            "potential merge"
+                        ),
+                        'common_qkit': list(
+                            set(self.patterns[pattern1_id].qkit)
+                            & set(self.patterns[pattern2_id].qkit)
+                        ),
+                        'common_attributes': list(
+                            set(self.patterns[pattern1_id].attributes.keys())
+                            & set(self.patterns[pattern2_id].attributes.keys())
+                        )
                     }
                     suggestions.append(suggestion)
 
@@ -288,8 +362,11 @@ class PatternEngine:
             Dictionary with usage statistics and insights
         """
         try:
+            self._reconcile_hierarchy()
             total_patterns = len(self.patterns)
-            total_usage = sum(pattern.usage_count for pattern in self.patterns.values())
+            total_usage = sum(
+                pattern.usage_count for pattern in self.patterns.values()
+            )
 
             # Most used patterns
             most_used = sorted(
@@ -305,32 +382,38 @@ class PatternEngine:
 
             # Orphaned patterns (no parents or children)
             orphaned = [
-                pid for pid, pattern in self.patterns.items()
-                if not pattern.parents and not pattern.children
+                pid for pid in self.patterns
+                if self.pattern_graph.degree(pid) == 0
             ]
 
             # Root patterns (no parents)
             root_patterns = [
-                pid for pid, pattern in self.patterns.items()
-                if not pattern.parents
+                pid for pid in self.patterns
+                if self.pattern_graph.in_degree(pid) == 0
             ]
 
             # Leaf patterns (no children)
             leaf_patterns = [
-                pid for pid, pattern in self.patterns.items()
-                if not pattern.children
+                pid for pid in self.patterns
+                if self.pattern_graph.out_degree(pid) == 0
             ]
+            hierarchy_depth = (
+                nx.dag_longest_path_length(self.pattern_graph)
+                if nx.is_directed_acyclic_graph(self.pattern_graph) else None
+            )
 
             return {
                 'total_patterns': total_patterns,
                 'total_usage': total_usage,
-                'average_usage': total_usage / total_patterns if total_patterns > 0 else 0,
+                'average_usage': (
+                    total_usage / total_patterns if total_patterns > 0 else 0
+                ),
                 'most_used_patterns': most_used,
                 'least_used_patterns': least_used,
                 'orphaned_patterns': orphaned,
                 'root_patterns': root_patterns,
                 'leaf_patterns': leaf_patterns,
-                'hierarchy_depth': nx.dag_longest_path_length(self.pattern_graph) if self.pattern_graph.nodes else 0
+                'hierarchy_depth': hierarchy_depth
             }
 
         except Exception as e:
@@ -347,6 +430,7 @@ class PatternEngine:
         suggestions = []
 
         try:
+            self._reconcile_hierarchy()
             # Detect cycles
             if not nx.is_directed_acyclic_graph(self.pattern_graph):
                 cycles = list(nx.simple_cycles(self.pattern_graph))
@@ -355,34 +439,47 @@ class PatternEngine:
                         'type': 'cycle_detected',
                         'patterns': cycle,
                         'priority': 'high',
-                        'description': f"Circular dependency detected: {' -> '.join(cycle)}"
+                        'description': (
+                            f"Circular dependency detected: "
+                            f"{' -> '.join(cycle)}"
+                        )
                     })
 
-            # Find redundant relationships
-            for pattern_id in self.patterns:
-                pattern = self.patterns[pattern_id]
-                for parent_id in pattern.parents:
-                    # Check if parent is also ancestor through another path
-                    hierarchy = self.get_pattern_hierarchy(pattern_id)
-                    indirect_ancestors = hierarchy['ancestors'] - set(pattern.parents)
-                    if parent_id in indirect_ancestors:
-                        suggestions.append({
-                            'type': 'redundant_relationship',
-                            'pattern': pattern_id,
-                            'parent': parent_id,
-                            'priority': 'medium',
-                            'description': f"Direct parent {parent_id} is also indirect ancestor"
-                        })
+            # Exclude each edge in a read-only view, then look for a real
+            # alternate path. Starting with a successor also handles self-loops
+            # without mistaking the zero-length path for an alternative.
+            for parent_id, pattern_id in self.pattern_graph.edges():
+                alternate = nx.restricted_view(
+                    self.pattern_graph, [], [(parent_id, pattern_id)]
+                )
+                if any(
+                    nx.has_path(alternate, successor, pattern_id)
+                    for successor in alternate.successors(parent_id)
+                ):
+                    suggestions.append({
+                        'type': 'redundant_relationship',
+                        'pattern': pattern_id,
+                        'parent': parent_id,
+                        'priority': 'medium',
+                        'description': (
+                            f"Direct parent {parent_id} is also "
+                            "indirect ancestor"
+                        )
+                    })
 
             # Find isolated patterns
             for pattern_id in self.patterns:
-                if (self.pattern_graph.in_degree(pattern_id) == 0 and
-                    self.pattern_graph.out_degree(pattern_id) == 0):
+                if (
+                    self.pattern_graph.in_degree(pattern_id) == 0
+                    and self.pattern_graph.out_degree(pattern_id) == 0
+                ):
                     suggestions.append({
                         'type': 'isolated_pattern',
                         'pattern': pattern_id,
                         'priority': 'low',
-                        'description': f"Pattern {pattern_id} has no relationships"
+                        'description': (
+                            f"Pattern {pattern_id} has no relationships"
+                        )
                     })
 
             return suggestions
@@ -398,6 +495,7 @@ class PatternEngine:
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get engine statistics."""
+        self._reconcile_hierarchy()
         return {
             'pattern_count': len(self.patterns),
             'graph_nodes': self.pattern_graph.number_of_nodes(),

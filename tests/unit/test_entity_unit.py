@@ -6,7 +6,6 @@ These tests focus on testing the Entity class in isolation.
 """
 
 import sys
-import os
 from pathlib import Path
 
 # Add src to path for imports
@@ -18,12 +17,6 @@ from atlas.entities.entity import Entity, EntityMetadata
 
 class TestEntityUnit:
     """Unit tests for Entity class."""
-
-    def __init__(self):
-        """Initialize test class."""
-        self.entity_id = "test_entity_001"
-        self.attributes = {"name": "Test Entity", "value": 42}
-        self.patterns = ["pattern1", "pattern2"]
 
     def setup_method(self):
         """Set up test fixtures."""
@@ -71,13 +64,22 @@ class TestEntityUnit:
         data = {
             'id': self.entity_id,
             'attributes': self.attributes,
-            'patterns': self.patterns
+            'patterns': self.patterns,
+            'metadata': {
+                'created_at': '2024-01-01T00:00:00',
+                'updated_at': '2024-01-01T00:00:00',
+                'version': 1,
+                'source': None,
+                'quality_score': None,
+                'tags': []
+            }
         }
 
         entity = Entity.from_dict(data)
         assert entity.id == self.entity_id
         assert entity.attributes == self.attributes
         assert entity.patterns == self.patterns
+        assert isinstance(entity.metadata, EntityMetadata)
 
     def test_entity_roundtrip_serialization(self):
         """Test entity serialization roundtrip."""
@@ -134,3 +136,19 @@ class TestEntityUnit:
         data = entity.to_dict()
         restored = Entity.from_dict(data)
         assert restored.attributes == complex_attributes
+
+
+if __name__ == "__main__":
+    failed_tests = 0
+    for method_name in dir(TestEntityUnit):
+        if not method_name.startswith('test_'):
+            continue
+        try:
+            instance = TestEntityUnit()
+            instance.setup_method()
+            getattr(instance, method_name)()
+            print(f"PASSED: {method_name}")
+        except Exception as exc:
+            failed_tests += 1
+            print(f"FAILED: {method_name}: {exc}")
+    sys.exit(1 if failed_tests else 0)

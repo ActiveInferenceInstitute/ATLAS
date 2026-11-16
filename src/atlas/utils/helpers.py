@@ -7,7 +7,7 @@ ID generation, time handling, data manipulation, and more.
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 import copy
 
 
@@ -50,7 +50,10 @@ def deep_merge(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, Any]:
     result = copy.deepcopy(dict1)
 
     for key, value in dict2.items():
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+        if (
+            key in result and isinstance(result[key], dict)
+            and isinstance(value, dict)
+        ):
             result[key] = deep_merge(result[key], value)
         else:
             result[key] = copy.deepcopy(value)
@@ -58,13 +61,15 @@ def deep_merge(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
-def safe_get(data: Union[Dict, List], key_path: str, default: Any = None) -> Any:
+def safe_get(
+    data: Union[Dict, List], key_path: str, default: Any = None
+) -> Any:
     """
     Safely get a nested value from a dictionary or list using dot notation.
 
     Args:
         data: Dictionary or list to traverse
-        key_path: Dot-separated path (e.g., "user.profile.name" or "items.0.id")
+        key_path: Dot-separated path, e.g. "user.profile.name" or "items.0.id"
         default: Default value if path not found
 
     Returns:
@@ -89,7 +94,9 @@ def safe_get(data: Union[Dict, List], key_path: str, default: Any = None) -> Any
         return default
 
 
-def flatten_dict(data: Dict[str, Any], parent_key: str = '', sep: str = '.') -> Dict[str, Any]:
+def flatten_dict(
+    data: Dict[str, Any], parent_key: str = '', sep: str = '.'
+) -> Dict[str, Any]:
     """
     Flatten a nested dictionary.
 
@@ -154,7 +161,7 @@ def validate_id(entity_id: str) -> bool:
     if not entity_id or not isinstance(entity_id, str):
         return False
 
-    # Basic validation - ID should not be empty and should not contain problematic characters
+    # An ID must be nonempty and contain no problematic whitespace.
     invalid_chars = [' ', '\n', '\t', '\r']
     return not any(char in entity_id for char in invalid_chars)
 
@@ -174,7 +181,9 @@ def sanitize_string(text: str, max_length: int = 1000) -> str:
         text = str(text)
 
     # Remove control characters and limit length
-    sanitized = ''.join(char for char in text if ord(char) >= 32 or char in '\n\t')
+    sanitized = ''.join(
+        char for char in text if ord(char) >= 32 or char in '\n\t'
+    )
     return sanitized[:max_length] if len(sanitized) > max_length else sanitized
 
 
@@ -200,9 +209,9 @@ def calculate_metrics(values: List[Union[int, float]]) -> Dict[str, float]:
 
         # Median
         if n % 2 == 0:
-            median = (sorted_values[n//2 - 1] + sorted_values[n//2]) / 2
+            median = (sorted_values[n // 2 - 1] + sorted_values[n // 2]) / 2
         else:
-            median = sorted_values[n//2]
+            median = sorted_values[n // 2]
 
         # Standard deviation
         variance = sum((x - mean) ** 2 for x in values) / n
@@ -218,7 +227,10 @@ def calculate_metrics(values: List[Union[int, float]]) -> Dict[str, float]:
         }
 
     except Exception:
-        return {'mean': 0.0, 'median': 0.0, 'std': 0.0, 'min': 0.0, 'max': 0.0, 'count': 0}
+        return {
+            'mean': 0.0, 'median': 0.0, 'std': 0.0,
+            'min': 0.0, 'max': 0.0, 'count': 0
+        }
 
 
 def chunk_list(data: List[Any], chunk_size: int) -> List[List[Any]]:

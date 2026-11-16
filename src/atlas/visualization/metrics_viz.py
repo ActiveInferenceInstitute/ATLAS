@@ -6,12 +6,11 @@ system performance, usage statistics, and quality analysis charts.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import pandas as pd
 import numpy as np
-import seaborn as sns
 from datetime import datetime, timedelta
 
 from .common import METRIC_COLORS
@@ -60,8 +59,8 @@ class MetricsVisualizer:
             raise ValueError("ATLAS engine not provided")
 
         try:
-            fig = plt.figure(figsize=figsize)
-            gs = fig.add_gridspec(3, 4, hspace=0.3, wspace=0.3)
+            fig = plt.figure(figsize=figsize, layout='constrained')
+            gs = fig.add_gridspec(3, 4)
 
             # Get system metrics
             metrics = self.atlas_engine.get_metrics()
@@ -75,15 +74,27 @@ class MetricsVisualizer:
                 'Relationships': metrics.get('relationships_added', 0)
             }
 
-            colors = list(self.metric_colors.values())[:len(component_counts)]
-            wedges, texts, autotexts = ax1.pie(
-                component_counts.values(),
-                labels=component_counts.keys(),
-                colors=colors,
-                autopct='%1.1f%%',
-                startangle=90
+            if sum(component_counts.values()) > 0:
+                colors = list(self.metric_colors.values())[
+                    :len(component_counts)
+                ]
+                ax1.pie(
+                    component_counts.values(),
+                    labels=component_counts.keys(),
+                    colors=colors,
+                    autopct='%1.1f%%',
+                    startangle=90
+                )
+            else:
+                ax1.text(
+                    0.5, 0.5, 'No component data available',
+                    ha='center', va='center', transform=ax1.transAxes
+                )
+                ax1.set_axis_off()
+            ax1.set_title(
+                'System Component Distribution',
+                fontsize=12, fontweight='bold'
             )
-            ax1.set_title('System Component Distribution', fontsize=12, fontweight='bold')
 
             # 2. Network metrics (top right)
             ax2 = fig.add_subplot(gs[0, 2:])
@@ -95,54 +106,80 @@ class MetricsVisualizer:
 
             metrics_names = [m[0] for m in network_metrics]
             metrics_values = [m[1] for m in network_metrics]
-            bars = ax2.bar(metrics_names, metrics_values, color=self.metric_colors['performance'])
+            bars = ax2.bar(
+                metrics_names, metrics_values,
+                color=self.metric_colors['performance']
+            )
             ax2.set_title('Network Topology Metrics', fontweight='bold')
             ax2.set_ylabel('Count')
 
             # Add value labels on bars
             for bar, value in zip(bars, metrics_values):
-                ax2.text(bar.get_x() + bar.get_width()/2., bar.get_height(),
-                        f'{value}', ha='center', va='bottom')
+                ax2.text(
+                    bar.get_x() + bar.get_width() / 2., bar.get_height(),
+                    f'{value}', ha='center', va='bottom'
+                )
 
             # 3. Graph density and connectivity (middle right)
             ax3 = fig.add_subplot(gs[1, 2:])
             density = metrics.get('graph_density', 0)
-            ax3.bar(['Graph Density'], [density], color=self.metric_colors['quality'])
+            ax3.bar(
+                ['Graph Density'], [density],
+                color=self.metric_colors['quality']
+            )
             ax3.set_ylabel('Density')
             ax3.set_ylim(0, 1)
             ax3.set_title('Graph Connectivity', fontweight='bold')
-            ax3.text(0, density + 0.05, f'{density:.3f}', ha='center', va='bottom')
+            ax3.text(
+                0, density + 0.05, f'{density:.3f}', ha='center', va='bottom'
+            )
 
             # 4. System activity timeline (bottom, full width)
             ax4 = fig.add_subplot(gs[2, :])
 
-            # Generate sample activity data (in real implementation, this would come from logs)
-            dates = pd.date_range(start=datetime.now() - timedelta(days=30),
-                                 end=datetime.now(), freq='D')
+            # Sample activity is simulated rather than sourced from logs.
+            dates = pd.date_range(
+                start=datetime.now() - timedelta(days=30),
+                end=datetime.now(), freq='D'
+            )
 
             # Simulate activity data
-            np.random.seed(42)  # For reproducible results
-            entities_created = np.random.poisson(2, len(dates))
-            patterns_created = np.random.poisson(1, len(dates))
-            queries_executed = np.random.poisson(5, len(dates))
+            # Reproducible simulation without changing caller randomness.
+            rng = np.random.RandomState(42)
+            entities_created = rng.poisson(2, len(dates))
+            patterns_created = rng.poisson(1, len(dates))
+            queries_executed = rng.poisson(5, len(dates))
 
-            ax4.plot(dates, entities_created, label='Entities Created',
-                    color=self.metric_colors['usage'], marker='o', markersize=3)
-            ax4.plot(dates, patterns_created, label='Patterns Created',
-                    color=self.metric_colors['growth'], marker='s', markersize=3)
-            ax4.plot(dates, queries_executed, label='Queries Executed',
-                    color=self.metric_colors['performance'], marker='^', markersize=3)
+            ax4.plot(
+                dates, entities_created, label='Entities Created',
+                color=self.metric_colors['usage'], marker='o', markersize=3
+            )
+            ax4.plot(
+                dates, patterns_created, label='Patterns Created',
+                color=self.metric_colors['growth'], marker='s', markersize=3
+            )
+            ax4.plot(
+                dates, queries_executed, label='Queries Executed',
+                color=self.metric_colors['performance'],
+                marker='^', markersize=3
+            )
 
             ax4.set_xlabel('Date')
             ax4.set_ylabel('Daily Count')
-            ax4.set_title('System Activity Timeline (Last 30 Days)', fontweight='bold')
+            ax4.set_title(
+                'System Activity Timeline (Simulated, Last 30 Days)',
+                fontweight='bold'
+            )
             ax4.legend()
             ax4.grid(True, alpha=0.3)
 
             # Format dates
             ax4.tick_params(axis='x', rotation=45)
 
-            plt.suptitle('ATLAS System Overview Dashboard', fontsize=16, fontweight='bold')
+            plt.suptitle(
+                'ATLAS System Overview Dashboard',
+                fontsize=16, fontweight='bold'
+            )
 
             if save_path:
                 plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -175,25 +212,34 @@ class MetricsVisualizer:
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
 
             # Get query performance data (simulated for demonstration)
-            np.random.seed(42)
-            query_times = np.random.lognormal(0, 1, 100)  # Log-normal distribution for query times
-            query_success_rates = np.random.beta(8, 2, 50)  # Beta distribution for success rates
+            rng = np.random.RandomState(42)
+            # Log-normal query times and beta-distributed success rates.
+            query_times = rng.lognormal(0, 1, 100)
+            query_success_rates = rng.beta(8, 2, 50)
 
             # 1. Query execution time distribution
-            ax1.hist(query_times, bins=20, alpha=0.7, color=self.metric_colors['performance'],
-                    edgecolor='black')
+            ax1.hist(
+                query_times, bins=20, alpha=0.7,
+                color=self.metric_colors['performance'], edgecolor='black'
+            )
             ax1.set_xlabel('Execution Time (seconds)')
             ax1.set_ylabel('Frequency')
             ax1.set_title('Query Execution Time Distribution')
-            ax1.axvline(np.mean(query_times), color='red', linestyle='--',
-                       label=f'Mean: {np.mean(query_times):.2f}s')
+            ax1.axvline(
+                np.mean(query_times), color='red', linestyle='--',
+                label=f'Mean: {np.mean(query_times):.2f}s'
+            )
             ax1.legend()
 
             # 2. Success rate over time
-            dates = pd.date_range(start=datetime.now() - timedelta(days=50),
-                                 end=datetime.now(), periods=len(query_success_rates))
-            ax2.plot(dates, query_success_rates, color=self.metric_colors['quality'],
-                    marker='o', markersize=4)
+            dates = pd.date_range(
+                start=datetime.now() - timedelta(days=50),
+                end=datetime.now(), periods=len(query_success_rates)
+            )
+            ax2.plot(
+                dates, query_success_rates,
+                color=self.metric_colors['quality'], marker='o', markersize=4
+            )
             ax2.set_xlabel('Date')
             ax2.set_ylabel('Success Rate')
             ax2.set_title('Query Success Rate Over Time')
@@ -203,10 +249,13 @@ class MetricsVisualizer:
 
             # 3. System load metrics
             hours = np.arange(24)
-            load_data = np.random.normal(50, 15, 24)  # Simulated hourly load
-            load_data = np.clip(load_data, 0, 100)  # Ensure values are between 0-100
+            load_data = rng.normal(50, 15, 24)  # Simulated hourly load
+            load_data = np.clip(load_data, 0, 100)  # Keep values within 0-100.
 
-            bars = ax3.bar(hours, load_data, color=self.metric_colors['efficiency'], alpha=0.7)
+            bars = ax3.bar(
+                hours, load_data,
+                color=self.metric_colors['efficiency'], alpha=0.7
+            )
             ax3.set_xlabel('Hour of Day')
             ax3.set_ylabel('System Load (%)')
             ax3.set_title('Average System Load by Hour')
@@ -221,16 +270,20 @@ class MetricsVisualizer:
 
             # 4. Memory and resource usage
             resource_types = ['Memory', 'CPU', 'Storage', 'Network']
-            current_usage = np.random.uniform(20, 90, len(resource_types))
+            current_usage = rng.uniform(20, 90, len(resource_types))
             max_capacity = np.full(len(resource_types), 100)
 
             x = np.arange(len(resource_types))
             width = 0.35
 
-            bars1 = ax4.bar(x - width/2, current_usage, width, label='Current Usage',
-                           color=self.metric_colors['usage'], alpha=0.7)
-            bars2 = ax4.bar(x + width/2, max_capacity, width, label='Capacity',
-                           color='lightgray', alpha=0.5)
+            bars1 = ax4.bar(
+                x - width / 2, current_usage, width, label='Current Usage',
+                color=self.metric_colors['usage'], alpha=0.7
+            )
+            ax4.bar(
+                x + width / 2, max_capacity, width, label='Capacity',
+                color='lightgray', alpha=0.5
+            )
 
             ax4.set_xlabel('Resource Type')
             ax4.set_ylabel('Usage (%)')
@@ -241,9 +294,12 @@ class MetricsVisualizer:
 
             # Add percentage labels
             for i, bar in enumerate(bars1):
-                ax4.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 2,
-                        f'{current_usage[i]:.1f}%', ha='center', va='bottom')
+                ax4.text(
+                    bar.get_x() + bar.get_width() / 2., bar.get_height() + 2,
+                    f'{current_usage[i]:.1f}%', ha='center', va='bottom'
+                )
 
+            fig.suptitle('Simulated System Performance Metrics')
             plt.tight_layout()
 
             if save_path:
@@ -274,48 +330,62 @@ class MetricsVisualizer:
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
 
             # Simulate quality metrics data
-            np.random.seed(42)
+            rng = np.random.RandomState(42)
 
             # 1. Data quality scores distribution
-            quality_scores = np.random.beta(3, 1, 200)  # Beta distribution skewed toward high quality
-            ax1.hist(quality_scores, bins=20, alpha=0.7, color=self.metric_colors['quality'],
-                    edgecolor='black')
+            # Beta distribution skewed toward high quality.
+            quality_scores = rng.beta(3, 1, 200)
+            ax1.hist(
+                quality_scores, bins=20, alpha=0.7,
+                color=self.metric_colors['quality'], edgecolor='black'
+            )
             ax1.set_xlabel('Quality Score')
             ax1.set_ylabel('Frequency')
             ax1.set_title('Data Quality Score Distribution')
-            ax1.axvline(np.mean(quality_scores), color='darkred', linestyle='--',
-                       label=f'Mean: {np.mean(quality_scores):.2f}')
+            ax1.axvline(
+                np.mean(quality_scores), color='darkred', linestyle='--',
+                label=f'Mean: {np.mean(quality_scores):.2f}'
+            )
             ax1.legend()
 
             # 2. Confidence scores by component type
             component_types = ['Entities', 'Patterns', 'Queries', 'Attributes']
-            confidence_means = np.random.uniform(0.6, 0.9, len(component_types))
-            confidence_stds = np.random.uniform(0.05, 0.15, len(component_types))
+            confidence_means = rng.uniform(0.6, 0.9, len(component_types))
+            confidence_stds = rng.uniform(0.05, 0.15, len(component_types))
 
-            bars = ax2.bar(component_types, confidence_means,
-                          yerr=confidence_stds, capsize=5,
-                          color=self.metric_colors['quality'], alpha=0.7)
+            bars = ax2.bar(
+                component_types, confidence_means,
+                yerr=confidence_stds, capsize=5,
+                color=self.metric_colors['quality'], alpha=0.7
+            )
             ax2.set_ylabel('Average Confidence Score')
             ax2.set_title('Confidence by Component Type')
             ax2.set_ylim(0, 1)
 
             # Add value labels
             for bar, mean in zip(bars, confidence_means):
-                ax2.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.02,
-                        f'{mean:.2f}', ha='center', va='bottom')
+                ax2.text(
+                    bar.get_x() + bar.get_width() / 2.,
+                    bar.get_height() + 0.02,
+                    f'{mean:.2f}', ha='center', va='bottom'
+                )
 
             # 3. Quality trends over time
-            dates = pd.date_range(start=datetime.now() - timedelta(days=30),
-                                 end=datetime.now(), freq='D')
+            dates = pd.date_range(
+                start=datetime.now() - timedelta(days=30),
+                end=datetime.now(), freq='D'
+            )
 
             # Simulate quality trend with slight improvement over time
             base_quality = 0.7
             trend = np.linspace(0, 0.1, len(dates))
-            noise = np.random.normal(0, 0.05, len(dates))
+            noise = rng.normal(0, 0.05, len(dates))
             quality_trend = np.clip(base_quality + trend + noise, 0, 1)
 
-            ax3.plot(dates, quality_trend, color=self.metric_colors['quality'],
-                    marker='o', markersize=3, linewidth=2)
+            ax3.plot(
+                dates, quality_trend, color=self.metric_colors['quality'],
+                marker='o', markersize=3, linewidth=2
+            )
             ax3.set_xlabel('Date')
             ax3.set_ylabel('Average Quality Score')
             ax3.set_title('Quality Trend Over Time')
@@ -326,27 +396,42 @@ class MetricsVisualizer:
             # Add trend line
             z = np.polyfit(range(len(dates)), quality_trend, 1)
             p = np.poly1d(z)
-            ax3.plot(dates, p(range(len(dates))), "--", color='red', alpha=0.7,
-                    label=f'Trend (slope: {z[0]:.4f}/day)')
+            ax3.plot(
+                dates, p(range(len(dates))), "--", color='red', alpha=0.7,
+                label=f'Trend (slope: {z[0]:.4f}/day)'
+            )
             ax3.legend()
 
             # 4. Anomaly detection summary
-            anomaly_types = ['Data Outliers', 'Pattern Violations', 'Consistency Issues', 'Missing Values']
-            anomaly_counts = np.random.poisson(5, len(anomaly_types))
-            severity_high = np.random.poisson(1, len(anomaly_types))
-            severity_medium = anomaly_counts - severity_high - np.random.poisson(1, len(anomaly_types))
+            anomaly_types = [
+                'Data Outliers', 'Pattern Violations',
+                'Consistency Issues', 'Missing Values'
+            ]
+            anomaly_counts = rng.poisson(5, len(anomaly_types))
+            severity_high = rng.poisson(1, len(anomaly_types))
+            severity_medium = (
+                anomaly_counts - severity_high
+                - rng.poisson(1, len(anomaly_types))
+            )
             severity_low = anomaly_counts - severity_high - severity_medium
-            severity_low = np.clip(severity_low, 0, None)  # Ensure non-negative
+            severity_low = np.clip(severity_low, 0, None)  # Non-negative
 
             x = np.arange(len(anomaly_types))
             width = 0.6
 
-            p1 = ax4.bar(x, severity_high, width, label='High Severity', color='red', alpha=0.8)
-            p2 = ax4.bar(x, severity_medium, width, bottom=severity_high,
-                        label='Medium Severity', color='orange', alpha=0.8)
-            p3 = ax4.bar(x, severity_low, width,
-                        bottom=severity_high + severity_medium,
-                        label='Low Severity', color='yellow', alpha=0.8)
+            ax4.bar(
+                x, severity_high, width,
+                label='High Severity', color='red', alpha=0.8
+            )
+            ax4.bar(
+                x, severity_medium, width, bottom=severity_high,
+                label='Medium Severity', color='orange', alpha=0.8
+            )
+            ax4.bar(
+                x, severity_low, width,
+                bottom=severity_high + severity_medium,
+                label='Low Severity', color='yellow', alpha=0.8
+            )
 
             ax4.set_xlabel('Anomaly Type')
             ax4.set_ylabel('Count')
@@ -355,6 +440,7 @@ class MetricsVisualizer:
             ax4.set_xticklabels(anomaly_types, rotation=45, ha='right')
             ax4.legend()
 
+            fig.suptitle('Simulated Data Quality Metrics')
             plt.tight_layout()
 
             if save_path:
@@ -376,7 +462,7 @@ class MetricsVisualizer:
         Create a comparison chart for multiple metric categories.
 
         Args:
-            metrics_data: Dictionary with categories as keys and metric dicts as values
+            metrics_data: Categories mapped to dictionaries of metric values
             figsize: Figure size tuple
             save_path: Optional path to save the figure
 
@@ -387,15 +473,23 @@ class MetricsVisualizer:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
             if not metrics_data:
-                ax1.text(0.5, 0.5, 'No metrics data provided', ha='center', va='center')
-                ax2.text(0.5, 0.5, 'No metrics data provided', ha='center', va='center')
+                ax1.text(
+                    0.5, 0.5, 'No metrics data provided',
+                    ha='center', va='center'
+                )
+                ax2.text(
+                    0.5, 0.5, 'No metrics data provided',
+                    ha='center', va='center'
+                )
                 return fig
 
             # Convert to DataFrame for easier plotting
             df = pd.DataFrame(metrics_data).T
 
             # 1. Heatmap of all metrics
-            im = ax1.imshow(df.values, cmap='RdYlGn', aspect='auto', vmin=0, vmax=1)
+            im = ax1.imshow(
+                df.values, cmap='RdYlGn', aspect='auto', vmin=0, vmax=1
+            )
             ax1.set_xticks(range(len(df.columns)))
             ax1.set_yticks(range(len(df.index)))
             ax1.set_xticklabels(df.columns, rotation=45, ha='right')
@@ -407,8 +501,10 @@ class MetricsVisualizer:
                 for j in range(len(df.columns)):
                     value = df.iloc[i, j]
                     if pd.notna(value):
-                        text = ax1.text(j, i, f'{value:.2f}', ha='center', va='center',
-                                      color='white' if value < 0.5 else 'black')
+                        ax1.text(
+                            j, i, f'{value:.2f}', ha='center', va='center',
+                            color='white' if value < 0.5 else 'black'
+                        )
 
             # Add colorbar
             cbar = plt.colorbar(im, ax=ax1)
@@ -432,10 +528,14 @@ class MetricsVisualizer:
 
                 # Create radar chart
                 ax2 = plt.subplot(1, 2, 2, projection='polar')
-                ax2.plot(angles, values, 'o-', linewidth=2,
-                        color=self.metric_colors['performance'])
-                ax2.fill(angles, values, alpha=0.25,
-                        color=self.metric_colors['performance'])
+                ax2.plot(
+                    angles, values, 'o-', linewidth=2,
+                    color=self.metric_colors['performance']
+                )
+                ax2.fill(
+                    angles, values, alpha=0.25,
+                    color=self.metric_colors['performance']
+                )
 
                 # Add labels
                 ax2.set_xticks(angles[:-1])
@@ -483,26 +583,36 @@ class MetricsVisualizer:
             # Generate summary statistics
             metrics = report['system_metrics']
             report['summary'] = {
-                'total_components': (metrics.get('entities_created', 0) +
-                                   metrics.get('patterns_created', 0) +
-                                   metrics.get('queries_executed', 0)),
+                'total_components': (
+                    metrics.get('entities_created', 0)
+                    + metrics.get('patterns_created', 0)
+                    + metrics.get('queries_executed', 0)
+                ),
                 'network_density': metrics.get('graph_density', 0),
-                'connectivity_score': 1.0 if metrics.get('connected_components', 1) == 1 else 0.5,
-                'activity_level': min(1.0, metrics.get('relationships_added', 0) / 100.0)
+                'connectivity_score': (
+                    1.0 if metrics.get('connected_components', 1) == 1 else 0.5
+                ),
+                'activity_level': min(
+                    1.0, metrics.get('relationships_added', 0) / 100.0
+                )
             }
 
             if include_charts:
                 # Generate overview chart
                 overview_fig = self.visualize_system_overview()
                 overview_path = f"{output_path}_overview.png"
-                overview_fig.savefig(overview_path, dpi=300, bbox_inches='tight')
+                overview_fig.savefig(
+                    overview_path, dpi=300, bbox_inches='tight'
+                )
                 report['charts_generated'].append(overview_path)
                 plt.close(overview_fig)
 
                 # Generate performance chart
                 performance_fig = self.visualize_performance_metrics()
                 performance_path = f"{output_path}_performance.png"
-                performance_fig.savefig(performance_path, dpi=300, bbox_inches='tight')
+                performance_fig.savefig(
+                    performance_path, dpi=300, bbox_inches='tight'
+                )
                 report['charts_generated'].append(performance_path)
                 plt.close(performance_fig)
 
