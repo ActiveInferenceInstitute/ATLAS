@@ -47,7 +47,7 @@ jobs:
       - name: Documentation QA gate
         run: ./gate docs
 
-  # Pin: .github/gnn-pin.json (v5.0.3, 8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1)
+  # The GNN pin lives in .github/gnn-pin.json.
   gnn-conformance:
     name: gnn conformance (pinned)
     runs-on: ubuntu-latest

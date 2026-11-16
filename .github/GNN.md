@@ -7,25 +7,26 @@ the same file a developer runs locally, so the check has a single definition.
 
 ## Pin
 
-The canonical pin is [`gnn-pin.json`](gnn-pin.json), schema
+The canonical pin is [`.github/gnn-pin.json`](gnn-pin.json), schema
 `gnn-importer-pin/v1`:
 
 | Field | Value |
 | --- | --- |
 | `repository` | `ActiveInferenceInstitute/Generalized_Notation_Notation` |
-| `tag` | `v5.0.3` |
-| `revision` | `8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1` |
+| `tag` | `v5.1.0` |
+| `revision` | `75c834bd8519dc7b5adc4d24f16bf393cfd1ecdf` |
 
-The check reads the pin rather than duplicating it: it refuses a pin whose
-schema or repository differs, installs the parser from the pinned revision with
-`--no-deps` plus the runtime modules the parser imports, and fails when the
-installed version does not match `tag`.
+The arm requires GNN v5.1.0 or later, reads the exact commit and release from
+the pin, and installs the parser with `--no-deps` plus its runtime modules.
+After verifying the installed version and source, it calls
+`gnn.importers.check_importer` to check the pin and this pointer and to find
+the repository's GNN sketches.
 
 Reuse of an existing install is bound to the pin's provenance, not its version
 string. PEP 610 `direct_url.json` must name the pinned repository and the pinned
-commit (`8f293d9b…`); a distribution without that file (a wheel from an index),
+commit (`75c834bd…`); a distribution without that file (a wheel from an index),
 a different repository, or a different commit forces a
-`--force-reinstall` of the pinned spec — `__version__ == "5.0.3"` alone is not
+`--force-reinstall` of the pinned spec — `__version__ == "5.1.0"` alone is not
 accepted, because another commit or a fork can report the same version.
 `--no-install` applies the same requirement and fails instead of keeping an
 already-importable but different parser. Provenance binds where the
@@ -33,8 +34,9 @@ distribution was installed from, not the bytes on disk.
 
 ## What it parses
 
-1. Every `*.gnn.md` sketch in the repository, recursively. Each is parsed, its
-   syntax validated, and the set type-checked by the pinned GNN type checker.
+1. The sketches declared by the pin or discovered by the shared reader. The
+   ATLAS arm parses and syntax-validates each sketch, then requires a literal
+   `True` from the pinned GNN type checker.
 2. When the repository has no sketch — the current state — the pinned upstream
    `input/gnn_files/basics/static_perception.md` exemplar at the pinned revision
    is parsed and type-checked instead.

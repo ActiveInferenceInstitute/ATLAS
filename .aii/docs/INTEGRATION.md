@@ -32,7 +32,7 @@
 | --- | --- | --- |
 | `ActiveInferenceInstitute/InstituteOS` | `referenced-by` | Federated via the InstituteOS .aii manifest. |
 | `docxology/ATLAS` | `references` | Public reference fork; the initial implementation was ported from it. |
-| `ActiveInferenceInstitute/Generalized_Notation_Notation` | `references` | Ecosystem notation for active inference generative models; the docs link its integration guides at the pinned v5.0.3 revision. ATLAS carries no GNN model and no GNN dependency. |
+| `ActiveInferenceInstitute/Generalized_Notation_Notation` | `references` | Ecosystem notation for active inference generative models; the docs link its integration guides at the pinned v5.1.0 revision. ATLAS carries no GNN model and no GNN dependency. |
 | `ActiveInferenceInstitute/Active_Inference_Ontology` | `references` | Controlled vocabulary of active inference concepts; the docs link it. No ATLAS identifier mapping exists. |
 | `ActiveInferenceInstitute/AEOS` | `references` | Domain ontology for scientific ecosystems; the docs link it. No ATLAS identifier mapping exists. |
 

@@ -193,7 +193,7 @@ Machine-readable citation metadata is available in
 - GNN — notation and pipeline for specifying, validating, and executing
   active inference generative models:
   <https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation>
-  ([integration guides](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/tree/8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1/docs/gnn/integration);
+  ([integration guides](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/tree/75c834bd8519dc7b5adc4d24f16bf393cfd1ecdf/docs/gnn/integration);
   [downstream adoption guide](https://github.com/ActiveInferenceInstitute/Generalized_Notation_Notation/blob/main/docs/gnn/integration/downstream_adoption.md)
   for repositories that consume the notation)
 - Active_Inference_Ontology — controlled vocabulary of active inference

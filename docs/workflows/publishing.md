@@ -25,12 +25,15 @@ Copied unchanged from ActiveInferenceJournal at
 
 - [`record-identity.schema.json`](record-identity.schema.json) — canonical grammar.
 - [`scripts/gate/identity.py`](../../scripts/gate/identity.py) — canonical checker.
-- [`.github/gnn-pin.json`](../../.github/gnn-pin.json) — already identical to the lead pin.
+
+The [GNN pin](../../.github/gnn-pin.json) copies the lead's v5.1.0 pin from
+ActiveInferenceJournal. Use the lead revision's recorded digest when advancing
+this copy and retain the original member conformance arm.
 
 ```text
 record-identity.schema.json  84f6c4df6efc3f15f0d8a9a05c8aabd0cbdc08b0f4feac5fcc8ae860a81e306b
 identity.py  847328ff163fa90c869495164869caf4e83313748e8a444dbab8d4e459b11074
-gnn-pin.json  eb83f7f1b73eb31e116bd05b1f457dd07e6874a2a4ba0e9e95e5bc91f094cd55
+gnn-pin.json  397e5f2803fadb6dfde336dbacf50ed195090effff1fdd13f54d0a8813cc1fa9
 ```
 
 ## Verification and scope

@@ -14,6 +14,16 @@ Scope definitions:
 Completed items are marked ✓ with the implementing commit. Open / deferred
 items are listed at the end.
 
+## GNN shared reader and pin
+
+- [x] Advance the Publishing-group GNN pin to `v5.1.0` and use the release's
+  reader for the pin, pointer and sketch discovery. The `gnn` arm still
+  verifies the installed repository and commit, then requires a literal
+  `True` from the type checker. It uses the exact pinned upstream exemplar
+  when the reader finds no local models.
+- [ ] After accepting the Publishing lead's pin update, verify the member
+  pin and its digest again against the lead's published revision.
+
 ## GNN result fail-closed (2026-11-12, PR #14)
 
 Landed in PR #14; the regression cases live in `tests/test_gnn_conformance.py`.
@@ -104,7 +114,7 @@ Landed in `0754b63`.
       implemented, where it matches the active inference framing, and where it
       does not (lexical heuristics, no free energy, no calibration claim).
 - [x] **Signposting.** README, AGENTS.md, the docs index, and the sidecar link
-      GNN's integration guides (pinned v5.0.3), the Active Inference
+      GNN's integration guides (pinned v5.1.0), the Active Inference
       Ontology, and AEOS; the sidecar records the three relations explicitly.
 
 ## Minor
@@ -186,20 +196,6 @@ Landed in `0754b63`.
   literal `True`, so both are refused (see the 2026-11-12 pass above); having
   the checker distinguish the two is the upstream maintainers' call. Do not
   change the pin to work around it.
-- GNN revision drift. `.github/gnn-pin.json` pins v5.0.3
-  (`8f293d9ba810e6eda5c09842d9c7ed9ffa5f92c1`, confirmed 2026-11-12 against
-  `git ls-remote --tags`), while the estate importer repositories moved to
-  v5.1.0 (`75c834bd8519dc7b5adc4d24f16bf393cfd1ecdf`; tag object
-  `7393a5d`). ATLAS is not an importer — it carries no GNN model and no GNN
-  dependency, and the pin only supplies the parser and the upstream exemplar
-  that [`scripts/gnn_conformance.py`](scripts/gnn_conformance.py) checks — so
-  no adoption is owed here. A bump is still a real option and has a cost:
-  `.github/gnn-pin.json` is digest-pinned in
-  [`docs/workflows/publishing.md`](docs/workflows/publishing.md) and checked
-  by `scripts/gate/identity.py` through `./gate docs`, and `./gate gnn` needs
-  network access. Owner: whoever owns the estate GNN pin; blocked on that
-  decision, and hosted runs cannot be the evidence while every `gate` and
-  CodeQL run fails within seconds of starting.
 - GitHub repository description and topics: re-verified 2026-11-12 with
   `gh api repos/ActiveInferenceInstitute/ATLAS` that the description reads
   "Adaptive Thinking and Learning Architecture System: a question-oriented
