@@ -11,6 +11,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
+from threading import RLock
 from typing import Any, Dict, List, Optional
 
 import networkx as nx
@@ -43,6 +44,7 @@ class ATLASEngine:
     def __init__(self, config: Optional[ATLASConfig] = None):
         """Initialize the ATLAS engine."""
         self.config = config or ATLASConfig()
+        self._state_lock = RLock()
         self.graph = nx.DiGraph()
 
         # Component registries
@@ -86,60 +88,61 @@ class ATLASEngine:
         The legacy ``relationship_type`` is the last explicit type, or
         ``parent_of`` on a declaration-only edge.
         """
-        for node_type, registry in (
-            ('entity', self.entities), ('pattern', self.patterns),
-            ('query', self.queries),
-        ):
-            for node_id, data in registry.items():
-                if node_id not in self.graph:
-                    self._replace_node(node_id, node_type, data)
+        with self._state_lock:
+            for node_type, registry in (
+                ('entity', self.entities), ('pattern', self.patterns),
+                ('query', self.queries),
+            ):
+                for node_id, data in registry.items():
+                    if node_id not in self.graph:
+                        self._replace_node(node_id, node_type, data)
 
-        declared = {}
-        for pattern_id, data in self.patterns.items():
-            for key in ('parents', 'children'):
-                if key in data:
-                    self.graph.nodes[pattern_id][key] = data[key]
-                else:
-                    self.graph.nodes[pattern_id].pop(key, None)
-            for parent in data.get('parents', []):
-                if parent in self.graph:
-                    declared[parent, pattern_id] = None
-            for child in data.get('children', []):
-                if child in self.graph:
-                    declared[pattern_id, child] = None
+            declared = {}
+            for pattern_id, data in self.patterns.items():
+                for key in ('parents', 'children'):
+                    if key in data:
+                        self.graph.nodes[pattern_id][key] = data[key]
+                    else:
+                        self.graph.nodes[pattern_id].pop(key, None)
+                for parent in data.get('parents', []):
+                    if parent in self.graph:
+                        declared[parent, pattern_id] = None
+                for child in data.get('children', []):
+                    if child in self.graph:
+                        declared[pattern_id, child] = None
 
-        occurrences = {}
-        for edge in declared:
-            occurrences[edge] = [
-                {'relationship_type': 'parent_of', 'origin': 'declaration'}
-            ]
-        for owner, relationships in self._owned_relationships.items():
-            for source, target, relationship_type in relationships:
-                if source in self.graph and target in self.graph:
-                    occurrences.setdefault((source, target), []).append({
-                        'relationship_type': relationship_type,
-                        'origin': 'owned',
-                        'owner': owner,
-                    })
-        for source, relationships in self.relationships.items():
-            for target, relationship_type in relationships:
-                if source in self.graph and target in self.graph:
-                    occurrences.setdefault((source, target), []).append({
-                        'relationship_type': relationship_type,
-                        'origin': 'explicit',
-                    })
+            occurrences = {}
+            for edge in declared:
+                occurrences[edge] = [
+                    {'relationship_type': 'parent_of', 'origin': 'declaration'}
+                ]
+            for owner, relationships in self._owned_relationships.items():
+                for source, target, relationship_type in relationships:
+                    if source in self.graph and target in self.graph:
+                        occurrences.setdefault((source, target), []).append({
+                            'relationship_type': relationship_type,
+                            'origin': 'owned',
+                            'owner': owner,
+                        })
+            for source, relationships in self.relationships.items():
+                for target, relationship_type in relationships:
+                    if source in self.graph and target in self.graph:
+                        occurrences.setdefault((source, target), []).append({
+                            'relationship_type': relationship_type,
+                            'origin': 'explicit',
+                        })
 
-        for edge in self._managed_edges - occurrences.keys():
-            if self.graph.has_edge(*edge):
-                self.graph.remove_edge(*edge)
-        for (source, target), records in occurrences.items():
-            self.graph.add_edge(
-                source, target, relationships=records,
-                relationship_type=records[-1]['relationship_type'],
-            )
-        self._managed_edges = set(occurrences)
-        self._declared_edges = declared
-        return self.graph
+            for edge in self._managed_edges - occurrences.keys():
+                if self.graph.has_edge(*edge):
+                    self.graph.remove_edge(*edge)
+            for (source, target), records in occurrences.items():
+                self.graph.add_edge(
+                    source, target, relationships=records,
+                    relationship_type=records[-1]['relationship_type'],
+                )
+            self._managed_edges = set(occurrences)
+            self._declared_edges = declared
+            return self.graph
 
     def replace_owned_relationships(self, owner: str,
                                     relationships: List[tuple]) -> bool:
@@ -148,31 +151,33 @@ class ATLASEngine:
         All endpoints must exist. Refusal leaves the previous owned set intact.
         An empty list withdraws this owner's occurrences only.
         """
-        records = list(relationships)
-        if any(
-            source not in self.graph or target not in self.graph
-            for source, target, _ in records
-        ):
-            return False
-        if records:
-            self._owned_relationships[owner] = records
-        else:
-            self._owned_relationships.pop(owner, None)
-        self.reconcile_graph()
-        return True
+        with self._state_lock:
+            records = list(relationships)
+            if any(
+                source not in self.graph or target not in self.graph
+                for source, target, _ in records
+            ):
+                return False
+            if records:
+                self._owned_relationships[owner] = records
+            else:
+                self._owned_relationships.pop(owner, None)
+            self.reconcile_graph()
+            return True
 
     def get_pattern_hierarchy_graph(self) -> nx.DiGraph:
         """Return a detached effective hierarchy of registered patterns."""
-        self.reconcile_graph()
-        hierarchy = nx.DiGraph()
-        hierarchy.add_nodes_from(self.patterns)
-        for source, target, data in self.graph.edges(data=True):
-            if source not in self.patterns or target not in self.patterns:
-                continue
-            records = data.get('relationships', [data])
-            if any(r.get('relationship_type') == 'parent_of' for r in records):
-                hierarchy.add_edge(source, target)
-        return hierarchy
+        with self._state_lock:
+            self.reconcile_graph()
+            hierarchy = nx.DiGraph()
+            hierarchy.add_nodes_from(self.patterns)
+            for source, target, data in self.graph.edges(data=True):
+                if source not in self.patterns or target not in self.patterns:
+                    continue
+                records = data.get('relationships', [data])
+                if any(r.get('relationship_type') == 'parent_of' for r in records):
+                    hierarchy.add_edge(source, target)
+            return hierarchy
 
     def add_entity(self, entity_id: str, entity_data: Dict[str, Any]) -> bool:
         """
@@ -185,25 +190,26 @@ class ATLASEngine:
         Returns:
             True if entity was added successfully, False otherwise
         """
-        try:
-            if entity_id in self.entities:
-                logger.warning(
-                    "Entity %s already exists, updating...", entity_id,
-                )
+        with self._state_lock:
+            try:
+                if entity_id in self.entities:
+                    logger.warning(
+                        "Entity %s already exists, updating...", entity_id,
+                    )
 
-            self._replace_node(entity_id, 'entity', entity_data)
-            self.entities[entity_id] = entity_data
-            self.reconcile_graph()
+                self._replace_node(entity_id, 'entity', entity_data)
+                self.entities[entity_id] = entity_data
+                self.reconcile_graph()
 
-            # Update metrics
-            self.metrics['entities_created'] += 1
+                # Update metrics
+                self.metrics['entities_created'] += 1
 
-            logger.info(f"Added entity: {entity_id}")
-            return True
+                logger.info(f"Added entity: {entity_id}")
+                return True
 
-        except Exception as e:
-            logger.error(f"Failed to add entity {entity_id}: {e}")
-            return False
+            except Exception as e:
+                logger.error(f"Failed to add entity {entity_id}: {e}")
+                return False
 
     def add_pattern(
         self, pattern_id: str, pattern_data: Dict[str, Any],
@@ -218,25 +224,26 @@ class ATLASEngine:
         Returns:
             True if pattern was added successfully, False otherwise
         """
-        try:
-            if pattern_id in self.patterns:
-                logger.warning(
-                    "Pattern %s already exists, updating...", pattern_id,
-                )
+        with self._state_lock:
+            try:
+                if pattern_id in self.patterns:
+                    logger.warning(
+                        "Pattern %s already exists, updating...", pattern_id,
+                    )
 
-            self._replace_node(pattern_id, 'pattern', pattern_data)
-            self.patterns[pattern_id] = pattern_data
-            self.reconcile_graph()
+                self._replace_node(pattern_id, 'pattern', pattern_data)
+                self.patterns[pattern_id] = pattern_data
+                self.reconcile_graph()
 
-            # Update metrics
-            self.metrics['patterns_created'] += 1
+                # Update metrics
+                self.metrics['patterns_created'] += 1
 
-            logger.info(f"Added pattern: {pattern_id}")
-            return True
+                logger.info(f"Added pattern: {pattern_id}")
+                return True
 
-        except Exception as e:
-            logger.error(f"Failed to add pattern {pattern_id}: {e}")
-            return False
+            except Exception as e:
+                logger.error(f"Failed to add pattern {pattern_id}: {e}")
+                return False
 
     def add_query(self, query_id: str, query_data: Dict[str, Any]) -> bool:
         """
@@ -249,20 +256,21 @@ class ATLASEngine:
         Returns:
             True if query was added successfully, False otherwise
         """
-        try:
-            if query_id in self.queries:
-                logger.warning(f"Query {query_id} already exists, updating...")
+        with self._state_lock:
+            try:
+                if query_id in self.queries:
+                    logger.warning(f"Query {query_id} already exists, updating...")
 
-            self._replace_node(query_id, 'query', query_data)
-            self.queries[query_id] = query_data
-            self.reconcile_graph()
+                self._replace_node(query_id, 'query', query_data)
+                self.queries[query_id] = query_data
+                self.reconcile_graph()
 
-            logger.info(f"Added query: {query_id}")
-            return True
+                logger.info(f"Added query: {query_id}")
+                return True
 
-        except Exception as e:
-            logger.error(f"Failed to add query {query_id}: {e}")
-            return False
+            except Exception as e:
+                logger.error(f"Failed to add query {query_id}: {e}")
+                return False
 
     def add_relationship(
         self, source_id: str, target_id: str, relationship_type: str,
@@ -278,35 +286,36 @@ class ATLASEngine:
         Returns:
             True if relationship was added successfully, False otherwise
         """
-        try:
-            self.reconcile_graph()
-            if source_id not in self.graph or target_id not in self.graph:
-                logger.warning(
-                    "Relationship endpoints not found: %s -> %s",
-                    source_id, target_id,
+        with self._state_lock:
+            try:
+                self.reconcile_graph()
+                if source_id not in self.graph or target_id not in self.graph:
+                    logger.warning(
+                        "Relationship endpoints not found: %s -> %s",
+                        source_id, target_id,
+                    )
+                    return False
+
+                self.relationships[source_id].append(
+                    (target_id, relationship_type),
+                )
+                self.reconcile_graph()
+
+                # Update metrics
+                self.metrics['relationships_added'] += 1
+
+                logger.info(
+                    "Added relationship: %s --[%s]--> %s",
+                    source_id, relationship_type, target_id,
+                )
+                return True
+
+            except Exception as e:
+                logger.error(
+                    "Failed to add relationship %s -> %s: %s",
+                    source_id, target_id, e,
                 )
                 return False
-
-            self.relationships[source_id].append(
-                (target_id, relationship_type),
-            )
-            self.reconcile_graph()
-
-            # Update metrics
-            self.metrics['relationships_added'] += 1
-
-            logger.info(
-                "Added relationship: %s --[%s]--> %s",
-                source_id, relationship_type, target_id,
-            )
-            return True
-
-        except Exception as e:
-            logger.error(
-                "Failed to add relationship %s -> %s: %s",
-                source_id, target_id, e,
-            )
-            return False
 
     def query(
         self, query_string: str, context: Optional[Dict[str, Any]] = None,
@@ -321,62 +330,63 @@ class ATLASEngine:
         Returns:
             List of results matching the query
         """
-        try:
-            # Update metrics
-            self.metrics['queries_executed'] += 1
+        with self._state_lock:
+            try:
+                # Update metrics
+                self.metrics['queries_executed'] += 1
 
-            # Keyword matching over each registered record.
-            results = []
+                # Keyword matching over each registered record.
+                results = []
 
-            # Search entities
-            for entity_id, entity_data in self.entities.items():
-                if self._matches_query(entity_data, query_string):
-                    results.append({
-                        'id': entity_id,
-                        'type': 'entity',
-                        'data': entity_data,
-                        'relevance_score': self._calculate_relevance(
-                            entity_data, query_string,
-                        ),
-                    })
+                # Search entities
+                for entity_id, entity_data in self.entities.items():
+                    if self._matches_query(entity_data, query_string):
+                        results.append({
+                            'id': entity_id,
+                            'type': 'entity',
+                            'data': entity_data,
+                            'relevance_score': self._calculate_relevance(
+                                entity_data, query_string,
+                            ),
+                        })
 
-            # Search patterns
-            for pattern_id, pattern_data in self.patterns.items():
-                if self._matches_query(pattern_data, query_string):
-                    results.append({
-                        'id': pattern_id,
-                        'type': 'pattern',
-                        'data': pattern_data,
-                        'relevance_score': self._calculate_relevance(
-                            pattern_data, query_string,
-                        ),
-                    })
+                # Search patterns
+                for pattern_id, pattern_data in self.patterns.items():
+                    if self._matches_query(pattern_data, query_string):
+                        results.append({
+                            'id': pattern_id,
+                            'type': 'pattern',
+                            'data': pattern_data,
+                            'relevance_score': self._calculate_relevance(
+                                pattern_data, query_string,
+                            ),
+                        })
 
-            # Search queries
-            for query_id, query_data in self.queries.items():
-                if self._matches_query(query_data, query_string):
-                    results.append({
-                        'id': query_id,
-                        'type': 'query',
-                        'data': query_data,
-                        'relevance_score': self._calculate_relevance(
-                            query_data, query_string,
-                        ),
-                    })
+                # Search queries
+                for query_id, query_data in self.queries.items():
+                    if self._matches_query(query_data, query_string):
+                        results.append({
+                            'id': query_id,
+                            'type': 'query',
+                            'data': query_data,
+                            'relevance_score': self._calculate_relevance(
+                                query_data, query_string,
+                            ),
+                        })
 
-            # Sort by relevance score
-            results.sort(
-                key=lambda x: x.get('relevance_score', 0), reverse=True,
-            )
+                # Sort by relevance score
+                results.sort(
+                    key=lambda x: x.get('relevance_score', 0), reverse=True,
+                )
 
-            logger.info(
-                "Query '%s' returned %s results", query_string, len(results),
-            )
-            return results
+                logger.info(
+                    "Query '%s' returned %s results", query_string, len(results),
+                )
+                return results
 
-        except Exception as e:
-            logger.error(f"Query execution failed: {e}")
-            return []
+            except Exception as e:
+                logger.error(f"Query execution failed: {e}")
+                return []
 
     def _matches_query(
         self, data: Dict[str, Any], query_string: str, max_depth: int = 10,
@@ -471,56 +481,59 @@ class ATLASEngine:
 
     def get_node(self, node_id: str) -> Optional[Dict[str, Any]]:
         """Get a node by its ID."""
-        try:
-            if node_id in self.entities:
-                return {'type': 'entity', 'data': self.entities[node_id]}
-            elif node_id in self.patterns:
-                return {'type': 'pattern', 'data': self.patterns[node_id]}
-            elif node_id in self.queries:
-                return {'type': 'query', 'data': self.queries[node_id]}
-            return None
-        except Exception as e:
-            logger.error(f"Failed to get node {node_id}: {e}")
-            return None
+        with self._state_lock:
+            try:
+                if node_id in self.entities:
+                    return {'type': 'entity', 'data': self.entities[node_id]}
+                elif node_id in self.patterns:
+                    return {'type': 'pattern', 'data': self.patterns[node_id]}
+                elif node_id in self.queries:
+                    return {'type': 'query', 'data': self.queries[node_id]}
+                return None
+            except Exception as e:
+                logger.error(f"Failed to get node {node_id}: {e}")
+                return None
 
     def get_relationships(
         self, node_id: str, relationship_type: Optional[str] = None,
     ) -> List[tuple]:
         """Return explicit occurrences and effective hierarchy declarations."""
-        try:
-            self.reconcile_graph()
-            relationships = list(self.relationships.get(node_id, []))
-            relationships.extend(
-                (target, rtype)
-                for records in self._owned_relationships.values()
-                for source, target, rtype in records if source == node_id
-            )
-            relationships.extend(
-                (target, 'parent_of')
-                for source, target in self._declared_edges if source == node_id
-            )
-            if relationship_type:
-                return [
-                    (target, rtype) for target, rtype in relationships
-                    if rtype == relationship_type
-                ]
-            return relationships
-        except Exception as e:
-            logger.error(f"Failed to get relationships for {node_id}: {e}")
-            return []
+        with self._state_lock:
+            try:
+                self.reconcile_graph()
+                relationships = list(self.relationships.get(node_id, []))
+                relationships.extend(
+                    (target, rtype)
+                    for records in self._owned_relationships.values()
+                    for source, target, rtype in records if source == node_id
+                )
+                relationships.extend(
+                    (target, 'parent_of')
+                    for source, target in self._declared_edges if source == node_id
+                )
+                if relationship_type:
+                    return [
+                        (target, rtype) for target, rtype in relationships
+                        if rtype == relationship_type
+                    ]
+                return relationships
+            except Exception as e:
+                logger.error(f"Failed to get relationships for {node_id}: {e}")
+                return []
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get performance and usage metrics."""
-        self.reconcile_graph()
-        return {
-            **self.metrics,
-            'total_nodes': len(self.graph.nodes),
-            'total_edges': len(self.graph.edges),
-            'graph_density': nx.density(self.graph),
-            'connected_components': nx.number_weakly_connected_components(
-                self.graph,
-            ),
-        }
+        with self._state_lock:
+            self.reconcile_graph()
+            return {
+                **self.metrics,
+                'total_nodes': len(self.graph.nodes),
+                'total_edges': len(self.graph.edges),
+                'graph_density': nx.density(self.graph),
+                'connected_components': nx.number_weakly_connected_components(
+                    self.graph,
+                ),
+            }
 
     @staticmethod
     def _json_default(value: Any) -> Any:
@@ -539,8 +552,9 @@ class ATLASEngine:
         not a typed round trip. Relationship occurrence lists are retained.
         """
         try:
-            self.reconcile_graph()
-            graph = copy.deepcopy(self.graph)
+            with self._state_lock:
+                self.reconcile_graph()
+                graph = copy.deepcopy(self.graph)
             if format in ('graphml', 'gexf'):
                 attribute_sets = [graph.graph]
                 for key in ('node_default', 'edge_default'):
@@ -593,19 +607,20 @@ class ATLASEngine:
 
     def clear(self) -> None:
         """Clear all data from the ATLAS engine."""
-        self.graph.clear()
-        self.entities.clear()
-        self.patterns.clear()
-        self.queries.clear()
-        self.attributes.clear()
-        self.interfaces.clear()
-        self.relationships.clear()
-        self._owned_relationships.clear()
-        self._managed_edges.clear()
-        self._declared_edges.clear()
+        with self._state_lock:
+            self.graph.clear()
+            self.entities.clear()
+            self.patterns.clear()
+            self.queries.clear()
+            self.attributes.clear()
+            self.interfaces.clear()
+            self.relationships.clear()
+            self._owned_relationships.clear()
+            self._managed_edges.clear()
+            self._declared_edges.clear()
 
-        # Reset metrics
-        for key in self.metrics:
-            self.metrics[key] = 0
+            # Reset metrics
+            for key in self.metrics:
+                self.metrics[key] = 0
 
-        logger.info("ATLAS engine cleared")
+            logger.info("ATLAS engine cleared")

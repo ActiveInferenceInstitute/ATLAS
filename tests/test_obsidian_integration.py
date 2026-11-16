@@ -770,6 +770,46 @@ class TestObsidianOwnershipRegressions:
         assert engine.entities[source_id]['patterns'] == [pattern.id]
         assert engine.patterns[pattern.id] == before_pattern
 
+    @pytest.mark.parametrize('manual_collections', [
+        ('attributes',), ('metadata',), ('attributes', 'metadata')
+    ])
+    def test_manual_tags_survive_source_overlap(self, tmp_path,
+                                               manual_collections):
+        self._write_notes(tmp_path, {'Source.md': 'No source tag.'})
+        integration = ObsidianIntegration()
+        assert integration.import_vault(tmp_path)['errors'] == []
+        source_id = integration.imported_notes['Source']
+        engine = integration.atlas
+        for collection in manual_collections:
+            engine.entities[source_id][collection]['tags'].append('topic')
+
+        self._write_notes(tmp_path, {'Source.md': '#topic'})
+        fresh = ObsidianIntegration(engine)
+        assert fresh.import_vault(tmp_path)['errors'] == []
+        self._write_notes(tmp_path, {'Source.md': 'Tag withdrawn.'})
+        fresh = ObsidianIntegration(engine)
+        assert fresh.import_vault(tmp_path)['errors'] == []
+        for collection in ('attributes', 'metadata'):
+            expected = ['topic'] if collection in manual_collections else []
+            assert engine.entities[source_id][collection]['tags'] == expected
+
+    def test_export_preserves_integer_relationship_type(self, tmp_path):
+        engine = ATLASEngine()
+        assert engine.add_entity('source', {'attributes': {'title': 'Source'}})
+        assert engine.add_entity('target', {'attributes': {'title': 'Target'}})
+        assert engine.add_relationship('source', 'target', 7)
+        integration = ObsidianIntegration(engine)
+        stats = integration.export_to_vault(tmp_path)
+        assert stats['errors'] == []
+        assert stats['entities_exported'] == 2
+        vault = tmp_path / 'ATLAS_Export'
+        records = self._exported_records(vault)
+        source_path, source_note = records[('entity', 'source')]
+        assert '**7**:' in source_note.content
+        assert (vault / source_path).is_file()
+        _, index_note = records[('index', '')]
+        assert '[[Entities/Source]]' in index_note.content
+
     def test_fresh_mapping_supports_relationship_only_import(self, tmp_path):
         self._write_notes(tmp_path, {
             'Source.md': '[[First]]',

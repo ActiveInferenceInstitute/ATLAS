@@ -128,7 +128,10 @@ identity can be explicitly associated. Ambiguous legacy mappings fail rather
 than guessing.
 
 Persisted `obsidian` ownership fields are `vault_path`, `note_id`,
-`attribute_keys`, `pattern_ids` and `tags`. Refresh updates source title,
+`attribute_keys`, `pattern_ids`, `tags`, `attribute_tags` and `metadata_tags`.
+The latter two track source ownership independently, so a source tag that
+overlaps an existing manual tag does not claim or later remove the manual value.
+Refresh updates source title,
 content, path, wiki-links, dates and frontmatter; content retains the
 1000-character preview limit. Unrelated manual state survives. Legacy core
 fields and the `fm_` namespace are treated as source fields, but unowned legacy

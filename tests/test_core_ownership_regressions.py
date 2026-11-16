@@ -4,6 +4,8 @@ import copy
 import io
 import json
 from datetime import date, datetime
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 import networkx as nx
 import pytest
@@ -190,3 +192,40 @@ def test_xml_keeps_networkx_default_metadata_structured():
     assert atlas.graph.graph['node_default'] == {
         'tier': 'standard', 'absent': None,
     }
+
+
+def test_reconciliation_serializes_concurrent_record_publication(monkeypatch):
+    atlas = ATLASEngine()
+    atlas.entities['seed'] = {}
+    reconciling = Event()
+    release = Event()
+    contender_started = Event()
+    contender_mutating = Event()
+    replace_node = atlas._replace_node
+
+    def observed_replace(node_id, node_type, data):
+        if node_id == 'seed':
+            reconciling.set()
+            assert release.wait(5)
+        elif node_id == 'contender':
+            contender_mutating.set()
+        replace_node(node_id, node_type, data)
+
+    def add_contender():
+        contender_started.set()
+        return atlas.add_entity('contender', {})
+
+    monkeypatch.setattr(atlas, '_replace_node', observed_replace)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(atlas.reconcile_graph)
+        try:
+            assert reconciling.wait(5)
+            second = pool.submit(add_contender)
+            assert contender_started.wait(5)
+            assert not contender_mutating.wait(0.05)
+        finally:
+            release.set()
+        assert first.result(timeout=5) is atlas.graph
+        assert second.result(timeout=5)
+    assert set(atlas.entities) == {'seed', 'contender'}
+    assert atlas.metrics['entities_created'] == 1

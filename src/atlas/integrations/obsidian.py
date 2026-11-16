@@ -472,6 +472,12 @@ class ObsidianIntegration:
         ownership = previous.get('obsidian', {})
         old_attributes = previous.get('attributes', {})
         old_tags = ownership.get('tags', old_attributes.get('tags', []))
+        manual_attribute_tags = set(old_attributes.get('tags', [])) - set(
+            ownership.get('attribute_tags', old_tags)
+        )
+        manual_metadata_tags = set(
+            previous.get('metadata', {}).get('tags', [])
+        ) - set(ownership.get('metadata_tags', old_tags))
         source_attributes = {
             'title': note.title,
             'content': (
@@ -480,8 +486,7 @@ class ObsidianIntegration:
             ),
             'file_path': str(note.file_path.resolve()),
             'source': 'obsidian',
-            'tags': sorted(note.tags | (set(old_attributes.get('tags', []))
-                                        - set(old_tags))),
+            'tags': sorted(note.tags | manual_attribute_tags),
             'wiki_links': sorted(note.wiki_links),
             'created_date': (
                 note.created_date.isoformat() if note.created_date else None
@@ -548,7 +553,7 @@ class ObsidianIntegration:
             note.modified_date or datetime.now()
         ).isoformat()
         metadata['tags'] = sorted(
-            note.tags | (set(metadata.get('tags', [])) - set(old_tags))
+            note.tags | manual_metadata_tags
         )
         data.update({
             'attributes': attributes,
@@ -559,7 +564,9 @@ class ObsidianIntegration:
                 'note_id': note.note_id,
                 'attribute_keys': sorted(source_attributes),
                 'pattern_ids': list(note_patterns),
-                'tags': sorted(note.tags)
+                'tags': sorted(note.tags),
+                'attribute_tags': sorted(note.tags - manual_attribute_tags),
+                'metadata_tags': sorted(note.tags - manual_metadata_tags),
             }
         })
         return data
@@ -777,7 +784,7 @@ class ObsidianIntegration:
                         target_data['type'], target_id, paths
                     )
                     content += (
-                        f"- **{rel_type.replace('_', ' ').title()}**: {link}\n"
+                        f"- **{str(rel_type).replace('_', ' ').title()}**: {link}\n"
                     )
 
         file_path = vault_path / paths[('entity', entity_id)]
