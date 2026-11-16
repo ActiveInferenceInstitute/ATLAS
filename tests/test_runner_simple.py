@@ -18,10 +18,14 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / 'src'))
 sys.path.insert(0, str(project_root))
 
+
 def run_test_file(file_path) -> Dict[str, Any]:
     """Run a test file using subprocess with detailed logging."""
     result = {
-        'name': os.path.basename(file_path) if isinstance(file_path, str) else file_path.name,
+        'name': (
+            os.path.basename(file_path)
+            if isinstance(file_path, str) else file_path.name
+        ),
         'status': 'FAILED',
         'error': None,
         'duration': 0.0,
@@ -39,11 +43,16 @@ def run_test_file(file_path) -> Dict[str, Any]:
             text=True,
             timeout=600,  # 10 minute timeout for comprehensive tests
             cwd=str(project_root),  # Run from project root
-            env={**os.environ, 'PYTHONPATH': f"{project_root / 'src'}:{project_root}"}
+            env={
+                **os.environ,
+                'PYTHONPATH': f"{project_root / 'src'}:{project_root}"
+            }
         )
 
         result['duration'] = time.time() - start_time
-        result['output'] = process_result.stdout if process_result.stdout else ""
+        result['output'] = (
+            process_result.stdout if process_result.stdout else ""
+        )
 
         if process_result.returncode == 0:
             result['status'] = 'PASSED'
@@ -51,13 +60,16 @@ def run_test_file(file_path) -> Dict[str, Any]:
         else:
             result['error'] = f"Exit code {process_result.returncode}"
             if process_result.stderr:
-                result['error'] += f": {process_result.stderr[:500]}..."  # Limit error length
+                # Limit error length.
+                result['error'] += f": {process_result.stderr[:500]}..."
             print(f"❌ FAILED ({result['duration']:.2f}s)")
             print(f"    ⚠️  Error: {result['error']}")
 
     except subprocess.TimeoutExpired:
         result['duration'] = time.time() - start_time
-        result['error'] = f"Test execution timed out after {result['duration']:.1f}s"
+        result['error'] = (
+            f"Test execution timed out after {result['duration']:.1f}s"
+        )
         print(f"⏰ TIMEOUT ({result['duration']:.2f}s)")
 
     except Exception as e:
@@ -105,7 +117,9 @@ def discover_test_files() -> Dict[str, Union[Path, List[Path]]]:
     return test_files
 
 
-def print_test_summary(all_results: List[Dict[str, Any]], total_time: float) -> None:
+def print_test_summary(
+    all_results: List[Dict[str, Any]], total_time: float
+) -> None:
     """Print detailed test execution summary."""
     total_tests = len(all_results)
     passed_tests = len([r for r in all_results if r['status'] == 'PASSED'])
@@ -118,7 +132,7 @@ def print_test_summary(all_results: List[Dict[str, Any]], total_time: float) -> 
     print(f"⏱️  Total Duration: {total_time:.2f}s")
     print(f"📁 Working Directory: {os.getcwd()}")
     print()
-    print(f"📋 Test Results:")
+    print("📋 Test Results:")
     print(f"   Total Tests: {total_tests}")
     print(f"   ✅ Passed: {passed_tests}")
     print(f"   ❌ Failed: {failed_tests}")
@@ -151,7 +165,10 @@ def print_test_summary(all_results: List[Dict[str, Any]], total_time: float) -> 
         print("\n🎉 ALL TESTS PASSED! 🎉")
         print("✨ ATLAS Knowledge Management System is functioning perfectly!")
     else:
-        print(f"\n⚠️  {failed_tests} test(s) failed. Please review the errors above.")
+        print(
+            f"\n⚠️  {failed_tests} test(s) failed. "
+            "Please review the errors above."
+        )
 
 
 def main():
@@ -181,7 +198,6 @@ def main():
 
     # Execute all tests
     all_results = []
-    total_passed = 0
     total_failed = 0
     start_time = time.time()
 
@@ -194,17 +210,13 @@ def main():
             for file_path in files:
                 result = run_test_file(file_path)
                 all_results.append(result)
-                if result['status'] == 'PASSED':
-                    total_passed += 1
-                else:
+                if result['status'] != 'PASSED':
                     total_failed += 1
         else:
             # Single file
             result = run_test_file(files)
             all_results.append(result)
-            if result['status'] == 'PASSED':
-                total_passed += 1
-            else:
+            if result['status'] != 'PASSED':
                 total_failed += 1
 
         print()  # Add spacing between categories

@@ -2,7 +2,8 @@
 Entity class - Core object in the ATLAS system.
 
 Entities are the fundamental objects within the ATLAS system.
-They can represent any identifiable object and are assigned attributes and patterns.
+They can represent any identifiable object and are assigned attributes and
+patterns.
 """
 
 import logging
@@ -58,11 +59,14 @@ class Entity:
         # Internal tracking
         self._anomalies: Dict[str, str] = {}  # iQuery ID -> reason
         self._exceptions: Dict[str, str] = {}  # iQuery ID -> reason
-        self._pending_rfis: Set[str] = set()  # Pending requests for information
+        # Pending requests for information
+        self._pending_rfis: Set[str] = set()
 
         logger.info(f"Created entity: {self.id}")
 
-    def add_attribute(self, key: str, value: Any, overwrite: bool = True) -> bool:
+    def add_attribute(
+        self, key: str, value: Any, overwrite: bool = True
+    ) -> bool:
         """
         Add or update an attribute.
 
@@ -76,7 +80,9 @@ class Entity:
         """
         try:
             if key in self.attributes and not overwrite:
-                logger.warning(f"Attribute {key} already exists for entity {self.id}")
+                logger.warning(
+                    f"Attribute {key} already exists for entity {self.id}"
+                )
                 return False
 
             self.attributes[key] = value
@@ -87,7 +93,9 @@ class Entity:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to add attribute {key} to entity {self.id}: {e}")
+            logger.error(
+                f"Failed to add attribute {key} to entity {self.id}: {e}"
+            )
             return False
 
     def remove_attribute(self, key: str) -> bool:
@@ -101,7 +109,9 @@ class Entity:
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to remove attribute {key} from entity {self.id}: {e}")
+            logger.error(
+                f"Failed to remove attribute {key} from entity {self.id}: {e}"
+            )
             return False
 
     def get_attribute(self, key: str, default: Any = None) -> Any:
@@ -131,7 +141,9 @@ class Entity:
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to add pattern {pattern_id} to entity {self.id}: {e}")
+            logger.error(
+                f"Failed to add pattern {pattern_id} to entity {self.id}: {e}"
+            )
             return False
 
     def remove_pattern(self, pattern_id: str) -> bool:
@@ -141,11 +153,16 @@ class Entity:
                 self.patterns.remove(pattern_id)
                 self.metadata.updated_at = datetime.now()
                 self.metadata.version += 1
-                logger.debug(f"Removed pattern {pattern_id} from entity {self.id}")
+                logger.debug(
+                    f"Removed pattern {pattern_id} from entity {self.id}"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to remove pattern {pattern_id} from entity {self.id}: {e}")
+            logger.error(
+                f"Failed to remove pattern {pattern_id} "
+                f"from entity {self.id}: {e}"
+            )
             return False
 
     def has_pattern(self, pattern_id: str) -> bool:
@@ -161,7 +178,10 @@ class Entity:
             reason: Optional reason for the anomaly
         """
         self._anomalies[iquery_id] = reason
-        logger.info(f"Marked entity {self.id} as anomaly for iQuery {iquery_id}: {reason}")
+        logger.info(
+            f"Marked entity {self.id} as anomaly "
+            f"for iQuery {iquery_id}: {reason}"
+        )
 
     def mark_exception(self, iquery_id: str, reason: str = "") -> None:
         """
@@ -172,11 +192,14 @@ class Entity:
             reason: Optional reason for the exception
         """
         self._exceptions[iquery_id] = reason
-        logger.info(f"Marked entity {self.id} as exception for iQuery {iquery_id}: {reason}")
+        logger.info(
+            f"Marked entity {self.id} as exception "
+            f"for iQuery {iquery_id}: {reason}"
+        )
 
     def call_rfis(self) -> Set[str]:
         """
-        Call open requests for information from entity attributes with no values.
+        Call requests for information for attributes with no values.
 
         Returns:
             Set of RFI identifiers that were called
@@ -189,7 +212,10 @@ class Entity:
                 rfi_id = f"rfi_{self.id}_{key}_{uuid.uuid4().hex[:8]}"
                 self._pending_rfis.add(rfi_id)
                 rfis_called.add(rfi_id)
-                logger.info(f"Called RFI {rfi_id} for attribute {key} of entity {self.id}")
+                logger.info(
+                    f"Called RFI {rfi_id} for attribute {key} "
+                    f"of entity {self.id}"
+                )
 
         return rfis_called
 
@@ -205,18 +231,32 @@ class Entity:
             True if RFI was resolved, False otherwise
         """
         try:
-            if rfi_id in self._pending_rfis:
-                # Extract attribute key from RFI ID (assumes format rfi_{entity_id}_{attr_key}_{uuid})
-                parts = rfi_id.split('_')
-                if len(parts) >= 4:
-                    attr_key = parts[2]
-                    self.add_attribute(attr_key, value)
-                    self._pending_rfis.remove(rfi_id)
-                    logger.info(f"Resolved RFI {rfi_id} for entity {self.id}")
-                    return True
-            return False
+            if rfi_id not in self._pending_rfis:
+                return False
+
+            prefix = f"rfi_{self.id}_"
+            if not rfi_id.startswith(prefix):
+                return False
+
+            # Entity IDs and attribute keys may both contain underscores.
+            attr_key, separator, suffix = rfi_id[len(prefix):].rpartition('_')
+            if (
+                not separator or len(suffix) != 8
+                or any(char not in '0123456789abcdef' for char in suffix)
+                or attr_key not in self.attributes
+            ):
+                return False
+
+            if not self.add_attribute(attr_key, value):
+                return False
+
+            self._pending_rfis.remove(rfi_id)
+            logger.info(f"Resolved RFI {rfi_id} for entity {self.id}")
+            return True
         except Exception as e:
-            logger.error(f"Failed to resolve RFI {rfi_id} for entity {self.id}: {e}")
+            logger.error(
+                f"Failed to resolve RFI {rfi_id} for entity {self.id}: {e}"
+            )
             return False
 
     def get_anomalies(self) -> Dict[str, str]:
@@ -276,7 +316,13 @@ class Entity:
         return entity
 
     def __str__(self) -> str:
-        return f"Entity(id='{self.id}', patterns={self.patterns}, attributes={len(self.attributes)})"
+        return (
+            f"Entity(id='{self.id}', patterns={self.patterns}, "
+            f"attributes={len(self.attributes)})"
+        )
 
     def __repr__(self) -> str:
-        return f"Entity(id='{self.id}', attributes={self.attributes}, patterns={self.patterns})"
+        return (
+            f"Entity(id='{self.id}', attributes={self.attributes}, "
+            f"patterns={self.patterns})"
+        )

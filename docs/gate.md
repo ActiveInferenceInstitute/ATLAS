@@ -39,6 +39,11 @@ CI installs once per job instead of once per arm.
 `pytest`. Both arms report their own counts; the measured numbers live in
 [`_generated/GATE.md`](_generated/GATE.md), never in prose.
 
+The eight formerly constructor-blocked test classes use `setup_method` and are
+ordinary pytest collection targets. Standalone callers initialize a fresh
+instance and invoke setup before each method; collection alone is not behavioral
+acceptance. Their five standalone entry points are retained.
+
 ## No types arm
 
 `pyproject.toml` declares `mypy` in the `dev` extra, but nothing in the
@@ -48,12 +53,12 @@ is no types arm; adding one is a separate, evidence-backed change.
 
 ## Lint scope
 
-`.flake8` selects only the fatal-error codes (`E9`, `F63`, `F7`, `F82`). The
-tree still carries pre-existing style debt under flake8's full default
-selection; the current count and its top codes are recorded in
-[`_generated/GATE.md`](_generated/GATE.md) and tracked in
-[`../TO-DO.md`](../TO-DO.md). The lint arm gates what the code is clean on and
-does not hide the rest.
+`.flake8` selects only the fatal-error codes (`E9`, `F63`, `F7`, `F82`) over
+`src tests scripts`. The source cleanup and passing fatal-code arm do not certify
+flake8's full default selection. Historical counts in
+[`_generated/GATE.md`](_generated/GATE.md) describe their recorded source, not
+the current tree; remaining style debt is tracked in
+[`../TO-DO.md`](../TO-DO.md). Do not widen the gate without a new measured baseline.
 
 ## CI
 

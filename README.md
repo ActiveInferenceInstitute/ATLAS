@@ -36,8 +36,9 @@ interfaces run locally and offline with only `networkx` installed. The optional
 an HTTP client; the tests that use them skip when the extra is absent. The GNN
 conformance arm (`./gate gnn`) installs the parser pinned in
 [`.github/gnn-pin.json`](.github/gnn-pin.json) at run time and needs network
-access. See [`TO-DO.md`](TO-DO.md) for the known warning-sentinel caveat in that
-arm and the open optional items.
+access. ATLAS accepts only literal `True` from the checker and refuses ambiguous
+warning sentinels. Distinguishing invalid files from no files remains an upstream
+GNN task; see [`TO-DO.md`](TO-DO.md) for that dependency and open optional items.
 
 ## Features
 

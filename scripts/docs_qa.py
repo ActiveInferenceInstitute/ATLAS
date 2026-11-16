@@ -34,13 +34,19 @@ def tracked_files() -> list[pathlib.Path]:
     return [ROOT / p for p in out.stdout.splitlines() if p]
 
 
-def check_trailing_whitespace(files: list[pathlib.Path], errors: list[str]) -> None:
+def check_trailing_whitespace(
+    files: list[pathlib.Path], errors: list[str]
+) -> None:
     for f in files:
         if f.suffix not in SUFFIXES:
             continue
-        for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+        for i, line in enumerate(
+            f.read_text(encoding="utf-8").splitlines(), 1
+        ):
             if line.rstrip() != line:
-                errors.append(f"{f.relative_to(ROOT)}:{i}: trailing whitespace")
+                errors.append(
+                    f"{f.relative_to(ROOT)}:{i}: trailing whitespace"
+                )
 
 
 def check_links(files: list[pathlib.Path], errors: list[str]) -> None:
@@ -58,14 +64,19 @@ def check_links(files: list[pathlib.Path], errors: list[str]) -> None:
                 errors.append(f"{f.relative_to(ROOT)}: broken link {target!r}")
                 continue
             if frag and destination.suffix == ".md":
-                linked_text = text if not path_part else destination.read_text(encoding="utf-8")
+                linked_text = (
+                    text if not path_part
+                    else destination.read_text(encoding="utf-8")
+                )
                 headings = {
                     re.sub(r"[^a-z0-9 -]", "", h.lower()).replace(" ", "-")
                     for h in re.findall(r"^#{1,6}\s+(.*)$", linked_text, re.M)
                 }
                 if frag not in headings:
                     anchor = repr(target) if path_part else f"#{frag}"
-                    errors.append(f"{f.relative_to(ROOT)}: broken anchor {anchor}")
+                    errors.append(
+                        f"{f.relative_to(ROOT)}: broken anchor {anchor}"
+                    )
 
 
 def check_yaml(files: list[pathlib.Path], errors: list[str]) -> None:
@@ -75,9 +86,12 @@ def check_yaml(files: list[pathlib.Path], errors: list[str]) -> None:
             errors.append(f"{name}: not tracked")
             continue
         ruby = subprocess.run(
-            ["ruby", "-ryaml", "-rdate", "-e",
-             "YAML.safe_load(File.read(ARGV[0]), permitted_classes: [Date, Time], aliases: true)",
-             str(target)],
+            [
+                "ruby", "-ryaml", "-rdate", "-e",
+                "YAML.safe_load(File.read(ARGV[0]), "
+                "permitted_classes: [Date, Time], aliases: true)",
+                str(target),
+            ],
             capture_output=True,
             text=True,
         )
@@ -112,7 +126,10 @@ def main() -> int:
         for e in errors:
             print(f"  - {e}")
         return 1
-    print("docs QA passed: whitespace, links/anchors, YAML, and Publishing digests all clean.")
+    print(
+        "docs QA passed: whitespace, links/anchors, YAML, "
+        "and Publishing digests all clean."
+    )
     return 0
 
 

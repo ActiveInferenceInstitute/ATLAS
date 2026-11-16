@@ -1,35 +1,30 @@
 #!/usr/bin/env python3
 """
 Comprehensive test suite for ATLAS Knowledge Management System.
-This test suite provides extensive coverage with proper typing and no linter errors.
+Extensive coverage of component and workflow contracts.
 """
 
-import pytest
 import sys
 import os
 from datetime import datetime
-from unittest.mock import Mock, patch
-from typing import Optional, Dict, List, Any
+from typing import Any
+import networkx as nx
 
 # Add src to path for imports in test environment
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from atlas.core.engine import ATLASEngine, ATLASConfig
-from atlas.entities.entity import Entity, EntityMetadata
+from atlas.entities.entity import Entity
 from atlas.entities.attribute import Attribute
 from atlas.patterns.pattern import Pattern
 from atlas.patterns.pattern_engine import PatternEngine
 from atlas.queries.iquery import iQuery, QueryPriority, QueryStatus
-from atlas.interfaces.prompt_interface import SimpleTransformInterface, create_identity_interface
+from atlas.interfaces.prompt_interface import SimpleTransformInterface
 from atlas.utils.helpers import generate_id, timestamp_now
 
 
 class TestATLASEngineComprehensive:
     """Test suite for comprehensive ATLAS engine functionality."""
-
-    def __init__(self):
-        self.config: ATLASConfig
-        self.atlas: ATLASEngine
 
     def setup_method(self) -> None:
         """Set up test fixtures."""
@@ -60,14 +55,16 @@ class TestATLASEngineComprehensive:
                 qkit=[f"q{i}", f"q{i+1}"],
                 attributes={"type": "test_pattern", "index": i}
             )
-            assert self.atlas.add_pattern(pattern.id, pattern.to_dict()) is True
+            assert self.atlas.add_pattern(
+                pattern.id, pattern.to_dict()
+            ) is True
 
         # Create multiple entities
         entities = []
         for i in range(5):
             entity = Entity(
                 entity_id=f"entity_{i}",
-                attributes={"index": i, "category": "test"},
+                attributes={"index": i, "category": "test category"},
                 patterns=[f"pattern_{i % 2}"]
             )
             entities.append(entity)
@@ -78,15 +75,20 @@ class TestATLASEngineComprehensive:
 
         # Test bulk operations
         for entity in entities:
-            assert self.atlas.add_relationship(entity.id, f"pattern_{0}", "conforms_to") is True
+            assert self.atlas.add_relationship(
+                entity.id, "pattern_0", "conforms_to"
+            ) is True
 
         # Test search across multiple entities
         results = self.atlas.query("test")
         assert len(results) >= 5
 
-        # Test category-based search
+        # Search a category value; nested dictionary keys are not search terms.
         category_results = self.atlas.query("category")
         assert len(category_results) >= 5
+        assert {result['id'] for result in category_results} == {
+            entity.id for entity in entities
+        }
 
     def test_pattern_hierarchy_operations(self) -> None:
         """Test complex pattern hierarchy operations."""
@@ -114,7 +116,9 @@ class TestATLASEngineComprehensive:
         # Add patterns to engine
         self.atlas.add_pattern(root_pattern.id, root_pattern.to_dict())
         self.atlas.add_pattern(child_pattern.id, child_pattern.to_dict())
-        self.atlas.add_pattern(grandchild_pattern.id, grandchild_pattern.to_dict())
+        self.atlas.add_pattern(
+            grandchild_pattern.id, grandchild_pattern.to_dict()
+        )
 
         # Test pattern retrieval
         assert len(self.atlas.patterns) == 3
@@ -189,6 +193,10 @@ class TestATLASEngineComprehensive:
         # Test graph export
         graphml_export = self.atlas.export_graph("graphml")
         assert isinstance(graphml_export, str)
+        assert graphml_export
+        exported_graph = nx.parse_graphml(graphml_export)
+        assert set(exported_graph) == {entity.id, pattern.id}
+        assert exported_graph.has_edge(entity.id, pattern.id)
 
         # Test graph structure
         assert self.atlas.graph.has_node(entity.id)
@@ -220,11 +228,15 @@ class TestAdvancedEntityOperations:
         assert entity.has_attribute("nonexistent") is False
 
         # Test overwrite protection
-        assert entity.add_attribute("string_attr", "new_value", overwrite=False) is False
+        assert entity.add_attribute(
+            "string_attr", "new_value", overwrite=False
+        ) is False
         assert entity.get_attribute("string_attr") == "test_value"
 
         # Test overwrite allowed
-        assert entity.add_attribute("string_attr", "new_value", overwrite=True) is True
+        assert entity.add_attribute(
+            "string_attr", "new_value", overwrite=True
+        ) is True
         assert entity.get_attribute("string_attr") == "new_value"
 
     def test_entity_pattern_management(self) -> None:
@@ -328,19 +340,24 @@ class TestAdvancedPatternOperations:
 class TestPatternEngineAdvanced:
     """Test suite for advanced pattern engine functionality."""
 
-    def __init__(self):
-        self.pattern_engine: PatternEngine
-        self.patterns: List[Pattern]
-
     def setup_method(self) -> None:
         """Set up test fixtures."""
         self.pattern_engine = PatternEngine()
 
         # Create test patterns
         self.patterns = [
-            Pattern(pattern_id="pattern_1", qkit=["q1", "q2"], attributes={"domain": "test"}),
-            Pattern(pattern_id="pattern_2", qkit=["q2", "q3"], attributes={"domain": "test"}),
-            Pattern(pattern_id="pattern_3", qkit=["q1", "q3"], attributes={"domain": "other"})
+            Pattern(
+                pattern_id="pattern_1", qkit=["q1", "q2"],
+                attributes={"domain": "test"}
+            ),
+            Pattern(
+                pattern_id="pattern_2", qkit=["q2", "q3"],
+                attributes={"domain": "test"}
+            ),
+            Pattern(
+                pattern_id="pattern_3", qkit=["q1", "q3"],
+                attributes={"domain": "other"}
+            )
         ]
 
         for pattern in self.patterns:
@@ -354,21 +371,27 @@ class TestPatternEngineAdvanced:
         )
         assert isinstance(similarity, float)
         assert 0.0 <= similarity <= 1.0
-        assert similarity > 0.0  # Should have some similarity due to shared items
+        assert similarity > 0.0  # Shared items provide some similarity.
 
         # Test finding similar patterns
-        similar = self.pattern_engine.find_similar_patterns("pattern_1", threshold=0.1)
+        similar = self.pattern_engine.find_similar_patterns(
+            "pattern_1", threshold=0.1
+        )
         assert len(similar) >= 1
         assert all(isinstance(sim, float) for _, sim in similar)
 
     def test_pattern_clustering(self) -> None:
         """Test pattern clustering functionality."""
-        clusters = self.pattern_engine.detect_pattern_clusters(similarity_threshold=0.1)
+        clusters = self.pattern_engine.detect_pattern_clusters(
+            similarity_threshold=0.1
+        )
         assert isinstance(clusters, dict)
         assert len(clusters) >= 1
 
         # Verify cluster contents
-        total_patterns_in_clusters = sum(len(cluster) for cluster in clusters.values())
+        total_patterns_in_clusters = sum(
+            len(cluster) for cluster in clusters.values()
+        )
         assert total_patterns_in_clusters <= len(self.patterns)
 
     def test_pattern_usage_analysis(self) -> None:
@@ -398,7 +421,11 @@ class TestPatternEngineAdvanced:
 
         suggestions = self.pattern_engine.optimize_pattern_hierarchy()
         assert isinstance(suggestions, list)
-        # Should not suggest any issues for a simple valid hierarchy
+        # The simple hierarchy is neither cyclic nor redundant.
+        assert not any(
+            item['type'] in {'cycle_detected', 'redundant_relationship'}
+            for item in suggestions
+        )
 
 
 class TestAdvancedAttributeOperations:
@@ -414,8 +441,12 @@ class TestAdvancedAttributeOperations:
         )
 
         # Add validation rules
-        assert attr.add_validation_rule("range", {"min": 0, "max": 100}) is True
-        assert attr.add_validation_rule("type", {"expected": "integer"}) is True
+        assert attr.add_validation_rule(
+            "range", {"min": 0, "max": 100}
+        ) is True
+        assert attr.add_validation_rule(
+            "type", {"expected": "integer"}
+        ) is True
 
         # Test valid values
         assert attr.set_value(75) is True
@@ -624,11 +655,6 @@ class TestHelperFunctionsAdvanced:
 class TestIntegrationScenarios:
     """Test suite for integration scenarios."""
 
-    def __init__(self):
-        self.config: ATLASConfig
-        self.atlas: ATLASEngine
-        self.pattern_engine: PatternEngine
-
     def setup_method(self) -> None:
         """Set up test fixtures for integration scenarios."""
         self.config = ATLASConfig(
@@ -645,11 +671,29 @@ class TestIntegrationScenarios:
         """Test construction of a complex knowledge graph."""
         # Create entities representing a simple domain model
         entities_data = [
-            ("person_1", {"name": "Alice", "role": "researcher", "department": "AI"}),
-            ("person_2", {"name": "Bob", "role": "engineer", "department": "AI"}),
-            ("project_1", {"name": "ATLAS", "type": "research", "status": "active"}),
-            ("publication_1", {"title": "Knowledge Graphs", "year": 2024, "authors": ["Alice", "Bob"]}),
-            ("department_ai", {"name": "AI Department", "budget": 1000000, "head": "Alice"})
+            (
+                "person_1",
+                {"name": "Alice", "role": "researcher", "department": "AI"}
+            ),
+            (
+                "person_2",
+                {"name": "Bob", "role": "engineer", "department": "AI"}
+            ),
+            (
+                "project_1",
+                {"name": "ATLAS", "type": "research", "status": "active"}
+            ),
+            (
+                "publication_1",
+                {
+                    "title": "Knowledge Graphs", "year": 2024,
+                    "authors": ["Alice", "Bob"]
+                }
+            ),
+            (
+                "department_ai",
+                {"name": "AI Department", "budget": 1000000, "head": "Alice"}
+            )
         ]
 
         # Add entities
@@ -688,13 +732,17 @@ class TestIntegrationScenarios:
         person_pattern = Pattern(
             pattern_id="person_pattern",
             qkit=["what_is_name", "what_is_role", "which_department"],
-            attributes={"entity_type": "person", "required_fields": ["name", "role"]}
+            attributes={
+                "entity_type": "person", "required_fields": ["name", "role"]
+            }
         )
 
         project_pattern = Pattern(
             pattern_id="project_pattern",
             qkit=["what_is_name", "what_is_status", "who_leads"],
-            attributes={"entity_type": "project", "required_fields": ["name", "status"]}
+            attributes={
+                "entity_type": "project", "required_fields": ["name", "status"]
+            }
         )
 
         # Add patterns to both engines
@@ -797,7 +845,7 @@ class TestIntegrationScenarios:
                     'entity_id': result['id'],
                     'relevance_score': result.get('relevance_score', 0.0),
                     'matched_attributes': ['expertise', 'skills'],
-                    'discovered_patterns': [ml_pattern.id]
+                    'derived_patterns': [ml_pattern.id]
                 })
 
         # Complete query execution with results
@@ -808,8 +856,13 @@ class TestIntegrationScenarios:
         assert query.status == QueryStatus.COMPLETED
 
         # Verify we found the ML expert
-        entity_ids = [r.get('entity_id') for r in query.results if 'entity_id' in r]
+        entity_ids = [
+            result.get('entity_id') for result in query.results
+            if 'entity_id' in result
+        ]
         assert ml_expert.id in entity_ids
+        assert query.response_entities == set(entity_ids)
+        assert query.derived_patterns == {ml_pattern.id}
 
         # Test quality scoring
         quality_score = query.calculate_quality_score()
@@ -817,18 +870,20 @@ class TestIntegrationScenarios:
 
     def test_error_handling_and_recovery(self) -> None:
         """Test system error handling and recovery."""
-        # Test malformed entity handling
-        try:
-            malformed_entity = Entity(entity_id="", attributes=None)  # Invalid
-            result = self.atlas.add_entity(malformed_entity.id, malformed_entity.to_dict())
-            # Should handle gracefully
-        except Exception as e:
-            # Expected for malformed data
-            assert isinstance(e, (ValueError, TypeError, AttributeError))
+        # Empty optional inputs use the documented constructor defaults.
+        default_entity = Entity(entity_id="", attributes=None)
+        assert default_entity.id
+        assert default_entity.attributes == {}
+        result = self.atlas.add_entity(
+            default_entity.id, default_entity.to_dict()
+        )
+        assert result is True
 
         # Test invalid relationship handling
-        result = self.atlas.add_relationship("nonexistent_1", "nonexistent_2", "invalid")
-        # Should handle gracefully without crashing
+        result = self.atlas.add_relationship(
+            "nonexistent_1", "nonexistent_2", "invalid"
+        )
+        assert result is False
 
         # Test query with no results
         empty_results = self.atlas.query("nonexistent_term")
@@ -870,14 +925,17 @@ if __name__ == "__main__":
         print(f"\n--- Running {test_class.__name__} ---")
 
         try:
-            instance = test_class()
-            test_methods = [method for method in dir(instance) if method.startswith('test_')]
+            test_methods = [
+                method for method in dir(test_class)
+                if method.startswith('test_')
+            ]
 
             for test_method_name in test_methods:
                 total_tests += 1
                 print(f"  Running {test_method_name}...", end=" ")
 
                 try:
+                    instance = test_class()
                     # Setup method if available
                     if hasattr(instance, 'setup_method'):
                         instance.setup_method()

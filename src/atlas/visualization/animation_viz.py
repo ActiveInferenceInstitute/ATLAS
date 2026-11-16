@@ -1,12 +1,12 @@
 """
 Animation visualization module for ATLAS.
 
-Provides comprehensive animation capabilities for visualizing dynamic
-knowledge graph evolution, pattern discovery, query execution, and system growth.
+Provides animation capabilities for dynamic knowledge graph evolution,
+pattern discovery, query execution, and system growth.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Union
+from typing import Dict, Any, Optional, Tuple
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.figure import Figure
@@ -14,29 +14,18 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from collections import defaultdict
-import io
-import base64
 
 from .common import ANIMATION_NODE_COLORS
-
-try:
-    import plotly.graph_objects as go
-    import plotly.express as px
-    from plotly.subplots import make_subplots
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 
 class AnimationVisualizer:
     """
-    Comprehensive animation visualization for ATLAS knowledge management system.
+    Animation visualization for ATLAS knowledge management.
 
-    Provides various animation types including network growth, pattern discovery,
-    query execution visualization, and temporal analysis animations.
+    Includes network growth, pattern discovery, query execution
+    visualization, and temporal analysis animations.
     """
 
     def __init__(self, atlas_engine=None, pattern_engine=None):
@@ -86,12 +75,14 @@ class AnimationVisualizer:
             fig, ax = plt.subplots(figsize=figsize)
 
             # Get current graph
-            full_graph = self.atlas_engine.graph.copy()
+            full_graph = self.atlas_engine.reconcile_graph().copy()
             nodes = list(full_graph.nodes())
             edges = list(full_graph.edges())
 
             if not nodes:
-                ax.text(0.5, 0.5, 'No nodes to animate', ha='center', va='center')
+                ax.text(
+                    0.5, 0.5, 'No nodes to animate', ha='center', va='center'
+                )
                 return None
 
             # Create animation frames data
@@ -102,33 +93,35 @@ class AnimationVisualizer:
                 edge_fraction = (step + 1) / time_steps
 
                 current_nodes = nodes[:int(len(nodes) * node_fraction)]
-                current_edges = [e for e in edges[:int(len(edges) * edge_fraction)]
-                               if e[0] in current_nodes and e[1] in current_nodes]
+                current_edges = [
+                    edge for edge in edges[:int(len(edges) * edge_fraction)]
+                    if edge[0] in current_nodes and edge[1] in current_nodes
+                ]
 
                 frames_data.append((current_nodes, current_edges))
 
             # Calculate layout for full graph (consistent positioning)
-            pos = nx.spring_layout(full_graph, k=1, iterations=50)
+            pos = nx.spring_layout(full_graph, k=1, iterations=50, seed=42)
 
             def animate_frame(frame_num):
                 ax.clear()
 
                 current_nodes, current_edges = frames_data[frame_num]
 
+                # Use the actual directed frame graph, including empty frames.
+                frame_graph = full_graph.subgraph(current_nodes).copy()
+                frame_graph.clear_edges()
+                frame_graph.add_edges_from(current_edges)
+
                 if current_nodes:
-                    # Create subgraph for current frame
-                    frame_graph = full_graph.subgraph(current_nodes).copy()
-
-                    # Add edges that exist in current frame
-                    frame_graph.clear_edges()
-                    frame_graph.add_edges_from(current_edges)
-
                     # Get node colors based on type
                     node_colors = []
                     for node in current_nodes:
                         node_data = full_graph.nodes[node]
                         node_type = node_data.get('node_type', 'entity')
-                        node_colors.append(self.node_colors.get(node_type, '#CCCCCC'))
+                        node_colors.append(
+                            self.node_colors.get(node_type, '#CCCCCC')
+                        )
 
                     # Draw network
                     current_pos = {node: pos[node] for node in current_nodes}
@@ -152,21 +145,33 @@ class AnimationVisualizer:
                     # Add labels for important nodes
                     important_nodes = [node for node in current_nodes[:5]]
                     if important_nodes:
-                        labels = {node: node[:8] + '...' if len(node) > 8 else node
-                                for node in important_nodes}
-                        nx.draw_networkx_labels(frame_graph, current_pos, labels, ax=ax, font_size=8)
+                        labels = {
+                            node: node[:8] + '...' if len(node) > 8 else node
+                            for node in important_nodes
+                        }
+                        nx.draw_networkx_labels(
+                            frame_graph, current_pos, labels,
+                            ax=ax, font_size=8
+                        )
 
-                ax.set_title(f'Network Growth Animation (Step {frame_num + 1}/{time_steps})\n'
-                           f'Nodes: {len(current_nodes)}, Edges: {len(current_edges)}',
-                           fontsize=14, fontweight='bold')
+                ax.set_title(
+                    'Network Growth Animation '
+                    f'(Step {frame_num + 1}/{time_steps})\n'
+                    f'Nodes: {len(current_nodes)}, '
+                    f'Edges: {len(current_edges)}',
+                    fontsize=14, fontweight='bold'
+                )
                 ax.axis('off')
 
                 # Add metrics text
-                max_edges = max(1.0, len(current_nodes) * (len(current_nodes) - 1) / 2.0)
-                metrics_text = f'Density: {len(current_edges) / max_edges:.3f}'
-                ax.text(0.02, 0.98, metrics_text, transform=ax.transAxes,
-                       bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue"),
-                       verticalalignment='top')
+                metrics_text = f'Density: {nx.density(frame_graph):.3f}'
+                ax.text(
+                    0.02, 0.98, metrics_text, transform=ax.transAxes,
+                    bbox=dict(
+                        boxstyle="round,pad=0.3", facecolor="lightblue"
+                    ),
+                    verticalalignment='top'
+                )
 
             # Create animation
             anim = animation.FuncAnimation(
@@ -210,16 +215,21 @@ class AnimationVisualizer:
         try:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
-            # Get patterns
-            patterns = {}
-            for node_id in self.atlas_engine.graph.nodes():
-                node_data = self.atlas_engine.graph.nodes[node_id]
-                if node_data.get('node_type') == 'pattern':
-                    patterns[node_id] = node_data
+            # Use the core's effective hierarchy rather than authored lists.
+            hierarchy = self.atlas_engine.get_pattern_hierarchy_graph()
+            patterns = {
+                pattern_id: self.atlas_engine.patterns[pattern_id]
+                for pattern_id in hierarchy
+            }
 
             if not patterns:
-                ax1.text(0.5, 0.5, 'No patterns to animate', ha='center', va='center')
-                ax2.text(0.5, 0.5, 'No data available', ha='center', va='center')
+                ax1.text(
+                    0.5, 0.5, 'No patterns to animate',
+                    ha='center', va='center'
+                )
+                ax2.text(
+                    0.5, 0.5, 'No data available', ha='center', va='center'
+                )
                 return None
 
             pattern_list = list(patterns.keys())
@@ -227,7 +237,9 @@ class AnimationVisualizer:
             # Simulate pattern discovery timeline
             discovery_timeline = []
             for step in range(time_steps):
-                step_patterns = pattern_list[:int(len(pattern_list) * (step + 1) / time_steps)]
+                step_patterns = pattern_list[
+                    :int(len(pattern_list) * (step + 1) / time_steps)
+                ]
                 discovery_timeline.append(step_patterns)
 
             def animate_discovery(frame_num):
@@ -238,24 +250,19 @@ class AnimationVisualizer:
 
                 # Left plot: Pattern hierarchy
                 if current_patterns:
-                    pattern_graph = nx.DiGraph()
-
-                    for pattern_id in current_patterns:
-                        pattern_graph.add_node(pattern_id)
-                        pattern_data = patterns[pattern_id]
-
-                        # Add hierarchy edges
-                        for parent in pattern_data.get('parents', []):
-                            if parent in current_patterns:
-                                pattern_graph.add_edge(parent, pattern_id)
+                    pattern_graph = hierarchy.subgraph(current_patterns)
 
                     if pattern_graph.nodes():
-                        pos = nx.spring_layout(pattern_graph, k=2, iterations=30)
+                        pos = nx.spring_layout(
+                            pattern_graph, k=2, iterations=30, seed=42
+                        )
 
                         # Color nodes by discovery order
                         node_colors = []
                         for node in pattern_graph.nodes():
-                            discovery_order = pattern_list.index(node) / len(pattern_list)
+                            discovery_order = (
+                                pattern_list.index(node) / len(pattern_list)
+                            )
                             node_colors.append(plt.cm.viridis(discovery_order))
 
                         nx.draw_networkx_nodes(
@@ -275,13 +282,20 @@ class AnimationVisualizer:
                             )
 
                         # Add pattern labels
-                        labels = {node: node[:6] + '...' if len(node) > 6 else node
-                                for node in pattern_graph.nodes()}
-                        nx.draw_networkx_labels(pattern_graph, pos, labels, ax=ax1, font_size=8)
+                        labels = {
+                            node: node[:6] + '...' if len(node) > 6 else node
+                            for node in pattern_graph.nodes()
+                        }
+                        nx.draw_networkx_labels(
+                            pattern_graph, pos, labels, ax=ax1, font_size=8
+                        )
 
-                ax1.set_title(f'Pattern Discovery Progress\n'
-                            f'Discovered: {len(current_patterns)}/{len(pattern_list)} patterns',
-                            fontsize=12, fontweight='bold')
+                ax1.set_title(
+                    'Pattern Discovery Progress\n'
+                    f'Discovered: {len(current_patterns)}'
+                    f'/{len(pattern_list)} patterns',
+                    fontsize=12, fontweight='bold'
+                )
                 ax1.axis('off')
 
                 # Right plot: Discovery metrics
@@ -300,21 +314,30 @@ class AnimationVisualizer:
                     df = pd.DataFrame(metrics_data)
 
                     # Bar plot of QKit sizes
-                    bars = ax2.bar(range(len(df)), df['qkit_size'],
-                                  color=self.node_colors['pattern'], alpha=0.7)
+                    bars = ax2.bar(
+                        range(len(df)), df['qkit_size'],
+                        color=self.node_colors['pattern'], alpha=0.7
+                    )
                     ax2.set_xlabel('Pattern Index')
                     ax2.set_ylabel('QKit Size')
                     ax2.set_title('Pattern Complexity (QKit Size)')
 
                     # Add usage count as text
-                    for i, (bar, usage) in enumerate(zip(bars, df['usage'])):
-                        ax2.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.1,
-                               f'U:{usage}', ha='center', va='bottom', fontsize=8)
+                    for bar, usage in zip(bars, df['usage']):
+                        ax2.text(
+                            bar.get_x() + bar.get_width() / 2.,
+                            bar.get_height() + 0.1,
+                            f'U:{usage}', ha='center', va='bottom', fontsize=8
+                        )
 
                 # Add timeline indicator
                 progress = (frame_num + 1) / time_steps
-                fig.suptitle(f'Pattern Discovery Animation (Step {frame_num + 1}/{time_steps})\n'
-                           f'Progress: {progress:.1%}', fontsize=14, fontweight='bold')
+                fig.suptitle(
+                    'Pattern Discovery Animation '
+                    f'(Step {frame_num + 1}/{time_steps})\n'
+                    f'Progress: {progress:.1%}',
+                    fontsize=14, fontweight='bold'
+                )
 
             # Create animation
             anim = animation.FuncAnimation(
@@ -325,7 +348,9 @@ class AnimationVisualizer:
             if save_path:
                 writer = animation.PillowWriter(fps=1.5)
                 anim.save(save_path, writer=writer, dpi=self.dpi)
-                logger.info(f"Pattern discovery animation saved to {save_path}")
+                logger.info(
+                    "Pattern discovery animation saved to %s", save_path
+                )
 
             return anim
 
@@ -359,21 +384,25 @@ class AnimationVisualizer:
             fig, ax = plt.subplots(figsize=figsize)
 
             # Get graph data
-            graph = self.atlas_engine.graph.copy()
+            graph = self.atlas_engine.reconcile_graph().copy()
 
             if not graph.nodes():
-                ax.text(0.5, 0.5, 'No nodes for query simulation', ha='center', va='center')
+                ax.text(
+                    0.5, 0.5, 'No nodes for query simulation',
+                    ha='center', va='center'
+                )
                 return None
 
             # Calculate layout
-            pos = nx.spring_layout(graph, k=1, iterations=50)
+            pos = nx.spring_layout(graph, k=1, iterations=50, seed=42)
 
             # Simulate query execution steps
             nodes = list(graph.nodes())
             query_simulation = []
 
             # Simulate search expansion from a random starting node
-            start_node = np.random.choice(nodes)
+            rng = np.random.default_rng()
+            start_node = rng.choice(nodes)
             visited = set()
             current_frontier = {start_node}
 
@@ -394,11 +423,14 @@ class AnimationVisualizer:
                     new_frontier.update(neighbors - visited)
 
                 # Simulate finding results (some nodes become results)
-                if step > query_steps // 3:  # Start finding results after initial exploration
+                # Start finding results after initial exploration.
+                if step > query_steps // 3:
                     potential_results = list(current_frontier)
                     if potential_results:
                         num_results = min(2, len(potential_results))
-                        results = set(np.random.choice(potential_results, num_results, replace=False))
+                        results = set(rng.choice(
+                            potential_results, num_results, replace=False
+                        ))
                         step_data['results'] = results
 
                 current_frontier = new_frontier
@@ -424,16 +456,19 @@ class AnimationVisualizer:
 
                 for node in graph.nodes():
                     if node in results:
-                        node_colors.append(self.node_colors['complete'])  # Green for results
+                        # Green for results.
+                        node_colors.append(self.node_colors['complete'])
                         node_sizes.append(500)
                     elif node in frontier:
-                        node_colors.append(self.node_colors['active'])    # Yellow for current frontier
+                        # Yellow for the current frontier.
+                        node_colors.append(self.node_colors['active'])
                         node_sizes.append(400)
                     elif node in visited:
-                        node_colors.append(self.node_colors['pattern'])   # Blue for visited
+                        # Blue for visited nodes.
+                        node_colors.append(self.node_colors['pattern'])
                         node_sizes.append(300)
                     else:
-                        node_colors.append('#CCCCCC')                     # Gray for unvisited
+                        node_colors.append('#CCCCCC')  # Gray for unvisited
                         node_sizes.append(200)
 
                 # Draw network
@@ -472,20 +507,35 @@ class AnimationVisualizer:
 
                 # Add legend
                 legend_elements = [
-                    plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=self.node_colors['complete'],
-                              markersize=10, label=f'Results ({len(results)})'),
-                    plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=self.node_colors['active'],
-                              markersize=10, label=f'Frontier ({len(frontier)})'),
-                    plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=self.node_colors['pattern'],
-                              markersize=10, label=f'Visited ({len(visited)})'),
-                    plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#CCCCCC',
-                              markersize=10, label='Unvisited')
+                    plt.Line2D(
+                        [0], [0], marker='o', color='w',
+                        markerfacecolor=self.node_colors['complete'],
+                        markersize=10, label=f'Results ({len(results)})'
+                    ),
+                    plt.Line2D(
+                        [0], [0], marker='o', color='w',
+                        markerfacecolor=self.node_colors['active'],
+                        markersize=10, label=f'Frontier ({len(frontier)})'
+                    ),
+                    plt.Line2D(
+                        [0], [0], marker='o', color='w',
+                        markerfacecolor=self.node_colors['pattern'],
+                        markersize=10, label=f'Visited ({len(visited)})'
+                    ),
+                    plt.Line2D(
+                        [0], [0], marker='o', color='w',
+                        markerfacecolor='#CCCCCC',
+                        markersize=10, label='Unvisited'
+                    )
                 ]
                 ax.legend(handles=legend_elements, loc='upper right')
 
-                ax.set_title(f'Query Execution Animation (Step {frame_num + 1}/{len(query_simulation)})\n'
-                           f'Exploring knowledge graph to find relevant results',
-                           fontsize=12, fontweight='bold')
+                ax.set_title(
+                    'Query Execution Animation '
+                    f'(Step {frame_num + 1}/{len(query_simulation)})\n'
+                    'Simulated exploration of the knowledge graph',
+                    fontsize=12, fontweight='bold'
+                )
                 ax.axis('off')
 
             # Create animation
@@ -526,15 +576,17 @@ class AnimationVisualizer:
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
 
             # Generate timeline data
-            dates = pd.date_range(start=datetime.now() - timedelta(days=time_window_days),
-                                 end=datetime.now(), freq='D')
+            dates = pd.date_range(
+                start=datetime.now() - timedelta(days=time_window_days),
+                end=datetime.now(), freq='D'
+            )
 
             # Simulate system activity data
-            np.random.seed(42)
-            entity_creations = np.random.poisson(3, len(dates))
-            pattern_discoveries = np.random.poisson(1, len(dates))
-            query_executions = np.random.poisson(8, len(dates))
-            system_events = np.random.poisson(2, len(dates))
+            rng = np.random.RandomState(42)
+            entity_creations = rng.poisson(3, len(dates))
+            pattern_discoveries = rng.poisson(1, len(dates))
+            query_executions = rng.poisson(8, len(dates))
+            system_events = rng.poisson(2, len(dates))
 
             # Cumulative data
             cum_entities = np.cumsum(entity_creations)
@@ -542,12 +594,18 @@ class AnimationVisualizer:
             cum_queries = np.cumsum(query_executions)
 
             # 1. Daily activity timeline
-            ax1.plot(dates, entity_creations, 'o-', label='Entities Created',
-                    color=self.node_colors['entity'], markersize=4)
-            ax1.plot(dates, pattern_discoveries, 's-', label='Patterns Discovered',
-                    color=self.node_colors['pattern'], markersize=4)
-            ax1.plot(dates, query_executions, '^-', label='Queries Executed',
-                    color=self.node_colors['query'], markersize=4)
+            ax1.plot(
+                dates, entity_creations, 'o-', label='Entities Created',
+                color=self.node_colors['entity'], markersize=4
+            )
+            ax1.plot(
+                dates, pattern_discoveries, 's-', label='Patterns Discovered',
+                color=self.node_colors['pattern'], markersize=4
+            )
+            ax1.plot(
+                dates, query_executions, '^-', label='Queries Executed',
+                color=self.node_colors['query'], markersize=4
+            )
 
             ax1.set_xlabel('Date')
             ax1.set_ylabel('Daily Count')
@@ -557,12 +615,18 @@ class AnimationVisualizer:
             ax1.tick_params(axis='x', rotation=45)
 
             # 2. Cumulative growth
-            ax2.plot(dates, cum_entities, label='Total Entities',
-                    color=self.node_colors['entity'], linewidth=2)
-            ax2.plot(dates, cum_patterns, label='Total Patterns',
-                    color=self.node_colors['pattern'], linewidth=2)
-            ax2.plot(dates, cum_queries, label='Total Queries',
-                    color=self.node_colors['query'], linewidth=2)
+            ax2.plot(
+                dates, cum_entities, label='Total Entities',
+                color=self.node_colors['entity'], linewidth=2
+            )
+            ax2.plot(
+                dates, cum_patterns, label='Total Patterns',
+                color=self.node_colors['pattern'], linewidth=2
+            )
+            ax2.plot(
+                dates, cum_queries, label='Total Queries',
+                color=self.node_colors['query'], linewidth=2
+            )
 
             ax2.set_xlabel('Date')
             ax2.set_ylabel('Cumulative Count')
@@ -573,11 +637,10 @@ class AnimationVisualizer:
 
             # 3. Activity heatmap (by day of week and hour)
             # Simulate hourly data for recent week
-            hours = range(24)
             days_of_week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
             # Create activity matrix
-            activity_matrix = np.random.exponential(2, (7, 24))
+            activity_matrix = rng.exponential(2, (7, 24))
             # Add patterns: higher activity during work hours and weekdays
             for day in range(5):  # Weekdays
                 for hour in range(9, 18):  # Work hours
@@ -597,16 +660,24 @@ class AnimationVisualizer:
             cbar.set_label('Activity Level')
 
             # 4. Event distribution pie chart
-            event_types = ['Entity Operations', 'Pattern Analysis', 'Query Processing', 'System Maintenance']
-            event_counts = [np.sum(entity_creations), np.sum(pattern_discoveries),
-                           np.sum(query_executions), np.sum(system_events)]
-            colors = [self.node_colors['entity'], self.node_colors['pattern'],
-                     self.node_colors['query'], self.node_colors['active']]
+            event_types = [
+                'Entity Operations', 'Pattern Analysis',
+                'Query Processing', 'System Maintenance'
+            ]
+            event_counts = [
+                np.sum(entity_creations), np.sum(pattern_discoveries),
+                np.sum(query_executions), np.sum(system_events)
+            ]
+            colors = [
+                self.node_colors['entity'], self.node_colors['pattern'],
+                self.node_colors['query'], self.node_colors['active']
+            ]
 
-            wedges, texts, autotexts = ax4.pie(event_counts, labels=event_types, colors=colors,
-                                              autopct='%1.1f%%', startangle=90)
+            ax4.pie(event_counts, labels=event_types, colors=colors,
+                    autopct='%1.1f%%', startangle=90)
             ax4.set_title('Event Distribution (Total)')
 
+            fig.suptitle('Simulated System Activity Timeline')
             plt.tight_layout()
 
             if save_path:
@@ -645,7 +716,7 @@ class AnimationVisualizer:
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
 
             # Simulate metrics evolution
-            np.random.seed(42)
+            rng = np.random.RandomState(42)
 
             # Generate baseline metrics from current system
             base_metrics = self.atlas_engine.get_metrics()
@@ -654,9 +725,18 @@ class AnimationVisualizer:
             base_relationships = base_metrics.get('relationships_added', 15)
 
             # Simulate growth over time
-            entity_growth = [base_entities + int(i * 2 + np.random.poisson(1)) for i in range(time_steps)]
-            pattern_growth = [base_patterns + int(i * 0.5 + np.random.poisson(0.3)) for i in range(time_steps)]
-            relationship_growth = [base_relationships + int(i * 3 + np.random.poisson(2)) for i in range(time_steps)]
+            entity_growth = [
+                base_entities + int(i * 2 + rng.poisson(1))
+                for i in range(time_steps)
+            ]
+            pattern_growth = [
+                base_patterns + int(i * 0.5 + rng.poisson(0.3))
+                for i in range(time_steps)
+            ]
+            relationship_growth = [
+                base_relationships + int(i * 3 + rng.poisson(2))
+                for i in range(time_steps)
+            ]
 
             # Calculate derived metrics
             density_evolution = []
@@ -692,15 +772,23 @@ class AnimationVisualizer:
                 current_relationships = relationship_growth[:frame_num + 1]
                 current_density = density_evolution[:frame_num + 1]
                 current_complexity = complexity_evolution[:frame_num + 1]
-                current_efficiency = efficiency_evolution[:frame_num + 1]
 
                 # 1. Component growth
-                ax1.plot(steps, current_entities, 'o-', color=self.node_colors['entity'],
-                        label='Entities', linewidth=2, markersize=6)
-                ax1.plot(steps, current_patterns, 's-', color=self.node_colors['pattern'],
-                        label='Patterns', linewidth=2, markersize=6)
-                ax1.plot(steps, current_relationships, '^-', color=self.node_colors['query'],
-                        label='Relationships', linewidth=2, markersize=6)
+                ax1.plot(
+                    steps, current_entities, 'o-',
+                    color=self.node_colors['entity'],
+                    label='Entities', linewidth=2, markersize=6
+                )
+                ax1.plot(
+                    steps, current_patterns, 's-',
+                    color=self.node_colors['pattern'],
+                    label='Patterns', linewidth=2, markersize=6
+                )
+                ax1.plot(
+                    steps, current_relationships, '^-',
+                    color=self.node_colors['query'],
+                    label='Relationships', linewidth=2, markersize=6
+                )
 
                 ax1.set_xlabel('Time Step')
                 ax1.set_ylabel('Count')
@@ -709,7 +797,10 @@ class AnimationVisualizer:
                 ax1.grid(True, alpha=0.3)
 
                 # 2. Network density
-                ax2.plot(steps, current_density, 'o-', color='purple', linewidth=2, markersize=6)
+                ax2.plot(
+                    steps, current_density, 'o-', color='purple',
+                    linewidth=2, markersize=6
+                )
                 ax2.set_xlabel('Time Step')
                 ax2.set_ylabel('Density')
                 ax2.set_title('Network Density Evolution')
@@ -717,7 +808,10 @@ class AnimationVisualizer:
                 ax2.grid(True, alpha=0.3)
 
                 # 3. System complexity
-                ax3.plot(steps, current_complexity, 's-', color='orange', linewidth=2, markersize=6)
+                ax3.plot(
+                    steps, current_complexity, 's-', color='orange',
+                    linewidth=2, markersize=6
+                )
                 ax3.set_xlabel('Time Step')
                 ax3.set_ylabel('Patterns per Entity')
                 ax3.set_title('System Complexity Trend')
@@ -726,8 +820,15 @@ class AnimationVisualizer:
                 # 4. Current metrics bar chart
                 if frame_num < len(current_entities):
                     metrics = ['Entities', 'Patterns', 'Relationships']
-                    values = [current_entities[-1], current_patterns[-1], current_relationships[-1]]
-                    colors = [self.node_colors['entity'], self.node_colors['pattern'], self.node_colors['query']]
+                    values = [
+                        current_entities[-1], current_patterns[-1],
+                        current_relationships[-1]
+                    ]
+                    colors = [
+                        self.node_colors['entity'],
+                        self.node_colors['pattern'],
+                        self.node_colors['query']
+                    ]
 
                     bars = ax4.bar(metrics, values, color=colors, alpha=0.7)
                     ax4.set_ylabel('Count')
@@ -735,11 +836,18 @@ class AnimationVisualizer:
 
                     # Add value labels on bars
                     for bar, value in zip(bars, values):
-                        ax4.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.5,
-                               f'{value}', ha='center', va='bottom', fontweight='bold')
+                        ax4.text(
+                            bar.get_x() + bar.get_width() / 2.,
+                            bar.get_height() + 0.5,
+                            f'{value}', ha='center', va='bottom',
+                            fontweight='bold'
+                        )
 
-                plt.suptitle(f'System Metrics Evolution (Step {frame_num + 1}/{time_steps})',
-                           fontsize=14, fontweight='bold')
+                plt.suptitle(
+                    'Simulated System Metrics Evolution '
+                    f'(Step {frame_num + 1}/{time_steps})',
+                    fontsize=14, fontweight='bold'
+                )
                 plt.tight_layout()
 
             # Create animation
@@ -774,7 +882,6 @@ class AnimationVisualizer:
         Returns:
             Dictionary with animation creation results
         """
-        import os
         from pathlib import Path
 
         try:
@@ -826,12 +933,16 @@ class AnimationVisualizer:
                 }
             ]
 
-            logger.info(f"Creating comprehensive animation suite in {output_path}")
+            logger.info(
+                "Creating comprehensive animation suite in %s", output_path
+            )
 
             # Create animations
             for config in animations_config:
                 try:
-                    file_path = output_path / f"{suite_name}_{config['name']}.gif"
+                    file_path = (
+                        output_path / f"{suite_name}_{config['name']}.gif"
+                    )
 
                     anim = config['func'](
                         save_path=str(file_path),
@@ -839,7 +950,8 @@ class AnimationVisualizer:
                     )
 
                     if anim and file_path.exists():
-                        file_size = file_path.stat().st_size / (1024 * 1024)  # MB
+                        # File size in MB.
+                        file_size = file_path.stat().st_size / (1024 * 1024)
                         results['created_animations'].append({
                             'name': config['name'],
                             'file_path': str(file_path),
@@ -847,10 +959,15 @@ class AnimationVisualizer:
                             'size_mb': round(file_size, 2)
                         })
                         results['total_size_mb'] += file_size
-                        logger.info(f"Created {config['name']} animation ({file_size:.2f} MB)")
+                        logger.info(
+                            "Created %s animation (%.2f MB)",
+                            config['name'], file_size
+                        )
 
                 except Exception as e:
-                    logger.error(f"Failed to create {config['name']} animation: {e}")
+                    logger.error(
+                        "Failed to create %s animation: %s", config['name'], e
+                    )
                     results['failed_animations'].append({
                         'name': config['name'],
                         'error': str(e)
@@ -859,7 +976,9 @@ class AnimationVisualizer:
             # Create static visualizations
             for config in static_configs:
                 try:
-                    file_path = output_path / f"{suite_name}_{config['name']}.png"
+                    file_path = (
+                        output_path / f"{suite_name}_{config['name']}.png"
+                    )
 
                     fig = config['func'](
                         save_path=str(file_path),
@@ -867,7 +986,8 @@ class AnimationVisualizer:
                     )
 
                     if fig and file_path.exists():
-                        file_size = file_path.stat().st_size / (1024 * 1024)  # MB
+                        # File size in MB.
+                        file_size = file_path.stat().st_size / (1024 * 1024)
                         results['created_animations'].append({
                             'name': config['name'],
                             'file_path': str(file_path),
@@ -876,12 +996,18 @@ class AnimationVisualizer:
                             'type': 'static'
                         })
                         results['total_size_mb'] += file_size
-                        logger.info(f"Created {config['name']} visualization ({file_size:.2f} MB)")
+                        logger.info(
+                            "Created %s visualization (%.2f MB)",
+                            config['name'], file_size
+                        )
 
                     plt.close(fig)  # Clean up
 
                 except Exception as e:
-                    logger.error(f"Failed to create {config['name']} visualization: {e}")
+                    logger.error(
+                        "Failed to create %s visualization: %s",
+                        config['name'], e
+                    )
                     results['failed_animations'].append({
                         'name': config['name'],
                         'error': str(e)
@@ -893,11 +1019,17 @@ class AnimationVisualizer:
                 import json
                 json.dump(results, f, indent=2)
 
-            logger.info(f"Animation suite completed: {len(results['created_animations'])} successful, "
-                       f"{len(results['failed_animations'])} failed, {results['total_size_mb']:.2f} MB total")
+            logger.info(
+                "Animation suite completed: %s successful, "
+                "%s failed, %.2f MB total",
+                len(results['created_animations']),
+                len(results['failed_animations']), results['total_size_mb']
+            )
 
             return results
 
         except Exception as e:
-            logger.error(f"Failed to create comprehensive animation suite: {e}")
+            logger.error(
+                "Failed to create comprehensive animation suite: %s", e
+            )
             raise

@@ -56,6 +56,13 @@ engine:
   scores summarize each query's execution.
 - `PatternEngine` operates on `Pattern` objects independently of the engine
   (hierarchy, similarity, clustering).
+- Hierarchy topology combines current authored `parents` and `children`, plus
+  explicit core `parent_of` occurrences. Replacing a record withdraws only that
+  record's declarations. Unresolved references remain authored until their
+  endpoints arrive; no placeholder records are invented.
+- Analysis, visualization and export reconcile direct mutable edits. Graph-only
+  access does not itself reconcile, and effective edges are never mirrored into
+  authored declaration lists.
 - Interfaces transform data in and out of the system; the engine's prompt
   interface is pluggable via the interface registry.
 
@@ -63,10 +70,14 @@ engine:
 
 - Nodes: entities, patterns, and queries (stored as graph nodes with their
   data as attributes).
-- Edges: typed relationships added via `add_relationship` (the engine also
-  records implicit pattern/entity links).
-- `export_graph` serializes the graph to GraphML, GEXF, or JSON;
-  non-scalar attribute values are JSON-encoded for GraphML/GEXF.
+- Edges retain explicit, declaration and source-owned relationship occurrences
+  inside the existing `DiGraph`. Duplicate explicit calls are retained; edge
+  counts still measure endpoint pairs. Replacing one source owner's occurrences
+  preserves manual relationships and other owners.
+- Exports use a detached graph, not scalarized live records. GraphML/GEXF encode
+  structured attributes as JSON and omit top-level nulls; JSON retains native
+  structure. Edge and adjacency lists are also available. See
+  [usage](usage.md#serialization-and-graph-export) for partial-output semantics.
 
 ## Dependencies
 

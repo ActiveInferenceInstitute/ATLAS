@@ -8,7 +8,6 @@ and objects which other Entity objects might instantiate or exemplify.
 import logging
 from typing import Dict, List, Any, Optional, Set
 from datetime import datetime
-import uuid
 
 from ..entities.entity import Entity, EntityMetadata
 
@@ -60,12 +59,13 @@ class Pattern(Entity):
         self.children: List[str] = children or []  # Child patterns
 
         # Pattern usage tracking
-        self.instances: Set[str] = set()  # Entities that instantiate this pattern
+        # Entities that instantiate this pattern
+        self.instances: Set[str] = set()
         self.derivations: Set[str] = set()  # Patterns derived from this one
 
         # Pattern metrics
         self.usage_count: int = 0
-        self.effectiveness_score: Optional[float] = None
+        self.effectiveness_score: Optional[float] = 0.0
 
         logger.info(f"Created pattern: {self.id}")
 
@@ -84,11 +84,15 @@ class Pattern(Entity):
                 self.qkit.append(iquery_id)
                 self.metadata.updated_at = datetime.now()
                 self.metadata.version += 1
-                logger.debug(f"Added iQuery {iquery_id} to pattern {self.id} QKit")
+                logger.debug(
+                    f"Added iQuery {iquery_id} to pattern {self.id} QKit"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to add iQuery to pattern {self.id} QKit: {e}")
+            logger.error(
+                f"Failed to add iQuery to pattern {self.id} QKit: {e}"
+            )
             return False
 
     def remove_qkit_item(self, iquery_id: str) -> bool:
@@ -98,11 +102,15 @@ class Pattern(Entity):
                 self.qkit.remove(iquery_id)
                 self.metadata.updated_at = datetime.now()
                 self.metadata.version += 1
-                logger.debug(f"Removed iQuery {iquery_id} from pattern {self.id} QKit")
+                logger.debug(
+                    f"Removed iQuery {iquery_id} from pattern {self.id} QKit"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to remove iQuery from pattern {self.id} QKit: {e}")
+            logger.error(
+                f"Failed to remove iQuery from pattern {self.id} QKit: {e}"
+            )
             return False
 
     def add_parent(self, parent_id: str) -> bool:
@@ -134,11 +142,15 @@ class Pattern(Entity):
                 self.parents.remove(parent_id)
                 self.metadata.updated_at = datetime.now()
                 self.metadata.version += 1
-                logger.debug(f"Removed parent {parent_id} from pattern {self.id}")
+                logger.debug(
+                    f"Removed parent {parent_id} from pattern {self.id}"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to remove parent from pattern {self.id}: {e}")
+            logger.error(
+                f"Failed to remove parent from pattern {self.id}: {e}"
+            )
             return False
 
     def add_child(self, child_id: str) -> bool:
@@ -170,7 +182,9 @@ class Pattern(Entity):
                 self.children.remove(child_id)
                 self.metadata.updated_at = datetime.now()
                 self.metadata.version += 1
-                logger.debug(f"Removed child {child_id} from pattern {self.id}")
+                logger.debug(
+                    f"Removed child {child_id} from pattern {self.id}"
+                )
                 return True
             return False
         except Exception as e:
@@ -191,11 +205,17 @@ class Pattern(Entity):
             if entity_id not in self.instances:
                 self.instances.add(entity_id)
                 self.usage_count += 1
-                logger.debug(f"Registered entity {entity_id} as instance of pattern {self.id}")
+                self.calculate_effectiveness_score()
+                logger.debug(
+                    f"Registered entity {entity_id} as instance of pattern "
+                    f"{self.id}"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to register instance for pattern {self.id}: {e}")
+            logger.error(
+                f"Failed to register instance for pattern {self.id}: {e}"
+            )
             return False
 
     def remove_instance(self, entity_id: str) -> bool:
@@ -204,11 +224,16 @@ class Pattern(Entity):
             if entity_id in self.instances:
                 self.instances.remove(entity_id)
                 self.usage_count = max(0, self.usage_count - 1)
-                logger.debug(f"Unregistered entity {entity_id} from pattern {self.id}")
+                self.calculate_effectiveness_score()
+                logger.debug(
+                    f"Unregistered entity {entity_id} from pattern {self.id}"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to unregister instance for pattern {self.id}: {e}")
+            logger.error(
+                f"Failed to unregister instance for pattern {self.id}: {e}"
+            )
             return False
 
     def add_derivation(self, pattern_id: str) -> bool:
@@ -224,11 +249,17 @@ class Pattern(Entity):
         try:
             if pattern_id not in self.derivations:
                 self.derivations.add(pattern_id)
-                logger.debug(f"Registered pattern {pattern_id} as derivation of {self.id}")
+                self.calculate_effectiveness_score()
+                logger.debug(
+                    f"Registered pattern {pattern_id} as derivation of "
+                    f"{self.id}"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to register derivation for pattern {self.id}: {e}")
+            logger.error(
+                f"Failed to register derivation for pattern {self.id}: {e}"
+            )
             return False
 
     def get_all_ancestors(self) -> Set[str]:
@@ -265,18 +296,25 @@ class Pattern(Entity):
         try:
             # Simple effectiveness calculation - can be enhanced
             base_score = min(self.usage_count / 100.0, 0.6)  # Usage component
-            instance_score = min(len(self.instances) / 50.0, 0.3)  # Instance diversity
-            derivation_score = min(len(self.derivations) / 10.0, 0.1)  # Derivation utility
+            # Instance diversity and derivation utility
+            instance_score = min(len(self.instances) / 50.0, 0.3)
+            derivation_score = min(len(self.derivations) / 10.0, 0.1)
 
-            self.effectiveness_score = base_score + instance_score + derivation_score
+            self.effectiveness_score = (
+                base_score + instance_score + derivation_score
+            )
             return self.effectiveness_score
 
         except Exception as e:
-            logger.error(f"Failed to calculate effectiveness score for pattern {self.id}: {e}")
+            logger.error(
+                "Failed to calculate effectiveness score for pattern "
+                f"{self.id}: {e}"
+            )
             return 0.0
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get usage and effectiveness statistics for this pattern."""
+        effectiveness_score = self.calculate_effectiveness_score()
         return {
             'usage_count': self.usage_count,
             'instance_count': len(self.instances),
@@ -284,12 +322,13 @@ class Pattern(Entity):
             'qkit_size': len(self.qkit),
             'parent_count': len(self.parents),
             'child_count': len(self.children),
-            'effectiveness_score': self.effectiveness_score or self.calculate_effectiveness_score()
+            'effectiveness_score': effectiveness_score
         }
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert pattern to dictionary representation."""
         base_dict = super().to_dict()
+        statistics = self.get_statistics()
         base_dict.update({
             'qkit': self.qkit,
             'parents': self.parents,
@@ -297,8 +336,8 @@ class Pattern(Entity):
             'instances': list(self.instances),
             'derivations': list(self.derivations),
             'usage_count': self.usage_count,
-            'effectiveness_score': self.effectiveness_score,
-            'statistics': self.get_statistics()
+            'effectiveness_score': statistics['effectiveness_score'],
+            'statistics': statistics
         })
         return base_dict
 
@@ -330,7 +369,7 @@ class Pattern(Entity):
         pattern.instances = set(data.get('instances', []))
         pattern.derivations = set(data.get('derivations', []))
         pattern.usage_count = data.get('usage_count', 0)
-        pattern.effectiveness_score = data.get('effectiveness_score')
+        pattern.calculate_effectiveness_score()
 
         # Restore entity-specific data
         pattern._anomalies = data.get('anomalies', {})
@@ -344,5 +383,7 @@ class Pattern(Entity):
                 f"parents={len(self.parents)}, children={len(self.children)})")
 
     def __repr__(self) -> str:
-        return (f"Pattern(id='{self.id}', qkit={self.qkit}, parents={self.parents}, "
-                f"children={self.children}, instances={len(self.instances)})")
+        return (
+            f"Pattern(id='{self.id}', qkit={self.qkit}, parents={self.parents}, "
+            f"children={self.children}, instances={len(self.instances)})"
+        )

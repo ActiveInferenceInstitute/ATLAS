@@ -1,8 +1,9 @@
 """
 ATLAS Test Suite Package
 
-This package provides comprehensive testing for the ATLAS Knowledge Management System.
-It includes unit tests, integration tests, and performance tests organized modularly.
+This package provides comprehensive testing for the ATLAS Knowledge Management
+System. It includes unit tests, integration tests, and performance tests
+organized modularly.
 
 Test Organization:
 - unit/: Individual component tests
@@ -19,7 +20,6 @@ Usage:
 __version__ = "1.0.0"
 __author__ = "Active Inference Institute"
 
-import os
 import sys
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -177,7 +177,9 @@ class TestSuiteManager:
             else:
                 # Single file
                 summary['categories'][category] = 1
-                summary['syntax_valid'][category] = 1 if self.run_syntax_check(files) else 0
+                summary['syntax_valid'][category] = (
+                    1 if self.run_syntax_check(files) else 0
+                )
                 summary['total_files'] += 1
 
         return summary
@@ -186,26 +188,32 @@ class TestSuiteManager:
 # Create global instance
 _test_manager = TestSuiteManager()
 
+
 # Export main functions for easy access
 def get_test_files() -> Dict[str, Any]:
     """Get all test files organized by category."""
     return _test_manager.get_test_files()
 
+
 def get_available_test_categories() -> List[str]:
     """Get list of available test categories."""
     return _test_manager.get_available_test_categories()
+
 
 def get_test_summary() -> Dict[str, Any]:
     """Get a summary of the test infrastructure."""
     return _test_manager.get_test_summary()
 
+
 def run_syntax_check(file_path: Path) -> bool:
     """Check if a Python file has valid syntax."""
     return _test_manager.run_syntax_check(file_path)
 
+
 def run_test_file(file_path: Path) -> Dict[str, Any]:
     """Run a single test file and return results."""
     return _test_manager.run_test_file(file_path)
+
 
 def run_all_tests(output_dir: Optional[Path] = None) -> Dict[str, Any]:
     """
@@ -278,6 +286,7 @@ def run_all_tests(output_dir: Optional[Path] = None) -> Dict[str, Any]:
 
     return results
 
+
 def _save_test_results(results: Dict[str, Any], output_dir: Path) -> None:
     """Save test results to output directory."""
     import json
@@ -287,6 +296,7 @@ def _save_test_results(results: Dict[str, Any], output_dir: Path) -> None:
 
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=2, default=str)
+
 
 # Export main functions
 __all__ = [

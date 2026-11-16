@@ -10,15 +10,8 @@ import os
 import time
 import statistics
 from datetime import datetime
-from typing import List, Dict, Any, Tuple
-import threading
+from typing import Dict, Any
 import concurrent.futures
-
-try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
 
 # Add src to path for imports in test environment
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -28,7 +21,6 @@ from atlas.entities.entity import Entity
 from atlas.patterns.pattern import Pattern
 from atlas.patterns.pattern_engine import PatternEngine
 from atlas.queries.iquery import iQuery, QueryPriority
-from atlas.utils.helpers import generate_id
 
 # Bounded load and timing checks; deselected by the default `./gate fast` arm
 # (`-m "not slow"`) and run by `./gate test`.
@@ -63,7 +55,10 @@ class TestATLASPerformance:
                         "name": f"Entity {i}",
                         "value": i,
                         "category": f"category_{i % 10}",
-                        "description": f"This is test entity number {i} for performance testing"
+                        "description": (
+                            f"This is test entity number {i} "
+                            "for performance testing"
+                        )
                     }
                 )
                 self.atlas.add_entity(entity.id, entity.to_dict())
@@ -73,7 +68,9 @@ class TestATLASPerformance:
             creation_times.append(creation_time)
 
             print(f"Created {count} entities in {creation_time:.3f} seconds")
-            print(f"Average time per entity: {creation_time/count:.6f} seconds")
+            print(
+                f"Average time per entity: {creation_time / count:.6f} seconds"
+            )
 
             # Verify entities were created
             assert len(self.atlas.entities) >= count
@@ -104,7 +101,7 @@ class TestATLASPerformance:
         search_terms = [
             "SearchEntity_123",  # Specific match
             "cat_5",             # Category match
-            "searchable_value_10", # Common field match
+            "searchable_value_10",  # Common field match
             "nonexistent_term"   # No match
         ]
 
@@ -117,9 +114,12 @@ class TestATLASPerformance:
             search_time = end_time - start_time
             search_times.append(search_time)
 
-            print(f"Search for '{term}' took {search_time:.6f} seconds, found {len(results)} results")
+            print(
+                f"Search for '{term}' took {search_time:.6f} seconds, "
+                f"found {len(results)} results"
+            )
 
-        # All searches should complete quickly (under 1 second for 1000 entities)
+        # All searches should take under 1 second for 1000 entities.
         assert all(t < 1.0 for t in search_times)
 
         # Average search time should be reasonable
@@ -154,11 +154,17 @@ class TestATLASPerformance:
         end_time = time.time()
         relationship_time = end_time - start_time
 
-        print(f"Created {successful_relationships}/{relationship_count} relationships in {relationship_time:.3f} seconds")
-        print(f"Average time per relationship: {relationship_time/relationship_count:.6f} seconds")
+        print(
+            f"Created {successful_relationships}/{relationship_count} "
+            f"relationships in {relationship_time:.3f} seconds"
+        )
+        print(
+            "Average time per relationship: "
+            f"{relationship_time / relationship_count:.6f} seconds"
+        )
 
-        # Verify relationships were created (allow for some to fail due to duplicates)
-        assert self.atlas.graph.number_of_edges() >= relationship_count * 0.5  # At least 50% should succeed
+        # Endpoint pairs share graph edges even when calls repeat.
+        assert self.atlas.graph.number_of_edges() >= relationship_count * 0.5
         assert successful_relationships >= relationship_count * 0.5
 
     def test_concurrent_operations(self) -> None:
@@ -190,18 +196,26 @@ class TestATLASPerformance:
         worker_count = 4
         entities_per_worker = 50
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=worker_count
+        ) as executor:
             futures = [
                 executor.submit(create_entities_worker, i, entities_per_worker)
                 for i in range(worker_count)
             ]
 
-            creation_times = [future.result() for future in concurrent.futures.as_completed(futures)]
+            creation_times = [
+                future.result()
+                for future in concurrent.futures.as_completed(futures)
+            ]
 
         total_entities = worker_count * entities_per_worker
         max_creation_time = max(creation_times)
 
-        print(f"Concurrent creation of {total_entities} entities completed in {max_creation_time:.3f} seconds")
+        print(
+            f"Concurrent creation of {total_entities} entities completed in "
+            f"{max_creation_time:.3f} seconds"
+        )
 
         # Verify all entities were created
         assert len(self.atlas.entities) >= total_entities
@@ -209,16 +223,23 @@ class TestATLASPerformance:
         # Test concurrent searches
         searches_per_worker = 20
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=worker_count
+        ) as executor:
             futures = [
                 executor.submit(search_worker, i, searches_per_worker)
                 for i in range(worker_count)
             ]
 
-            search_times = [future.result() for future in concurrent.futures.as_completed(futures)]
+            search_times = [
+                future.result()
+                for future in concurrent.futures.as_completed(futures)
+            ]
 
         max_search_time = max(search_times)
-        print(f"Concurrent searches completed in {max_search_time:.3f} seconds")
+        print(
+            f"Concurrent searches completed in {max_search_time:.3f} seconds"
+        )
 
         # Performance should be reasonable under concurrency
         assert max_creation_time < 5.0
@@ -261,7 +282,8 @@ class TestPatternEnginePerformance:
         similarities = []
         for i in range(similarity_count):
             pattern1_idx = i % pattern_count
-            pattern2_idx = (i + 7) % pattern_count  # Offset to avoid self-comparison
+            # Offset to avoid self-comparison.
+            pattern2_idx = (i + 7) % pattern_count
 
             similarity = self.pattern_engine.calculate_pattern_similarity(
                 patterns[pattern1_idx].id,
@@ -272,13 +294,20 @@ class TestPatternEnginePerformance:
         end_time = time.time()
         similarity_time = end_time - start_time
 
-        print(f"Calculated {similarity_count} similarities in {similarity_time:.3f} seconds")
-        print(f"Average time per similarity: {similarity_time/similarity_count:.6f} seconds")
+        print(
+            f"Calculated {similarity_count} similarities in "
+            f"{similarity_time:.3f} seconds"
+        )
+        print(
+            "Average time per similarity: "
+            f"{similarity_time / similarity_count:.6f} seconds"
+        )
 
         # Verify results are reasonable
         assert all(0.0 <= sim <= 1.0 for sim in similarities)
         assert similarity_time < 5.0  # Should complete within 5 seconds
-        assert (similarity_time / similarity_count) < 0.01  # Less than 10ms per calculation
+        # Less than 10ms per calculation.
+        assert (similarity_time / similarity_count) < 0.01
 
     def test_pattern_clustering_performance(self) -> None:
         """Test performance of pattern clustering operations."""
@@ -292,12 +321,16 @@ class TestPatternEnginePerformance:
             for pattern_id in range(patterns_per_cluster):
                 # Add some shared and some unique elements
                 qkit = base_qkit.copy()
-                qkit.extend([f"unique_{cluster_id}_{pattern_id}_{j}" for j in range(3)])
+                qkit.extend([
+                    f"unique_{cluster_id}_{pattern_id}_{j}" for j in range(3)
+                ])
 
                 pattern = Pattern(
                     pattern_id=f"cluster_pattern_{cluster_id}_{pattern_id}",
                     qkit=qkit,
-                    attributes={"cluster": cluster_id, "pattern_idx": pattern_id}
+                    attributes={
+                        "cluster": cluster_id, "pattern_idx": pattern_id
+                    }
                 )
                 self.pattern_engine.add_pattern(pattern)
 
@@ -305,12 +338,17 @@ class TestPatternEnginePerformance:
 
         # Test clustering performance
         start_time = time.time()
-        clusters = self.pattern_engine.detect_pattern_clusters(similarity_threshold=0.3)
+        clusters = self.pattern_engine.detect_pattern_clusters(
+            similarity_threshold=0.3
+        )
         end_time = time.time()
 
         clustering_time = end_time - start_time
 
-        print(f"Clustered {total_patterns} patterns in {clustering_time:.3f} seconds")
+        print(
+            f"Clustered {total_patterns} patterns in "
+            f"{clustering_time:.3f} seconds"
+        )
         print(f"Found {len(clusters)} clusters")
 
         # Verify clustering results
@@ -323,7 +361,6 @@ class TestPatternEnginePerformance:
         pattern_count = 200
         max_instances_per_pattern = 50
 
-        patterns = []
         for i in range(pattern_count):
             pattern = Pattern(pattern_id=f"usage_pattern_{i}")
 
@@ -332,7 +369,6 @@ class TestPatternEnginePerformance:
             for j in range(instance_count):
                 pattern.add_instance(f"entity_{i}_{j}")
 
-            patterns.append(pattern)
             self.pattern_engine.add_pattern(pattern)
 
         # Test usage analysis performance
@@ -342,7 +378,10 @@ class TestPatternEnginePerformance:
 
         analysis_time = end_time - start_time
 
-        print(f"Analyzed usage for {pattern_count} patterns in {analysis_time:.3f} seconds")
+        print(
+            f"Analyzed usage for {pattern_count} patterns in "
+            f"{analysis_time:.3f} seconds"
+        )
 
         # Verify analysis results
         assert analysis['total_patterns'] == pattern_count
@@ -408,14 +447,20 @@ class TestQueryPerformance:
 
         execution_time = time.time() - start_time
 
-        print(f"Executed {query_count} queries in {execution_time:.3f} seconds")
-        print(f"Average execution time per query: {execution_time/query_count:.6f} seconds")
+        print(
+            f"Executed {query_count} queries in {execution_time:.3f} seconds"
+        )
+        print(
+            "Average execution time per query: "
+            f"{execution_time / query_count:.6f} seconds"
+        )
 
         # Verify all queries completed successfully
         assert all(query.status.value == "completed" for query in queries)
         assert creation_time < 1.0  # Query creation should be fast
         assert execution_time < 5.0  # Query execution should be reasonable
-        assert (execution_time / query_count) < 0.05  # Less than 50ms per query
+        # Less than 50ms per query.
+        assert (execution_time / query_count) < 0.05
 
     def test_quality_scoring_performance(self) -> None:
         """Test performance of query quality scoring."""
@@ -432,7 +477,9 @@ class TestQueryPerformance:
                 query.add_result({
                     "entity_id": f"entity_{j}",
                     "score": 0.5 + (j * 0.05),
-                    "derived_patterns": [f"pattern_{j % 3}"] if j % 2 == 0 else []
+                    "derived_patterns": (
+                        [f"pattern_{j % 3}"] if j % 2 == 0 else []
+                    )
                 })
 
             queries.append(query)
@@ -448,8 +495,14 @@ class TestQueryPerformance:
 
         scoring_time = time.time() - start_time
 
-        print(f"Calculated quality scores for {query_count} queries in {scoring_time:.3f} seconds")
-        print(f"Average scoring time per query: {scoring_time/query_count:.6f} seconds")
+        print(
+            f"Calculated quality scores for {query_count} queries in "
+            f"{scoring_time:.3f} seconds"
+        )
+        print(
+            "Average scoring time per query: "
+            f"{scoring_time / query_count:.6f} seconds"
+        )
 
         # Verify scoring results
         assert all(0.0 <= score <= 1.0 for score in quality_scores)
@@ -482,22 +535,33 @@ class TestMemoryUsage:
                 entity_id=f"memory_test_entity_{i}",
                 attributes={
                     "name": f"Entity {i}",
-                    "description": f"This is a test entity {i} " * 10,  # Larger strings
+                    # Larger strings.
+                    "description": f"This is a test entity {i} " * 10,
                     "data": list(range(i % 100)),  # Variable size lists
-                    "metadata": {"created": datetime.now().isoformat(), "index": i}
+                    "metadata": {
+                        "created": datetime.now().isoformat(), "index": i
+                    }
                 }
             )
             atlas.add_entity(entity.id, entity.to_dict())
 
             # Add some relationships
             if i > 0:
-                atlas.add_relationship(f"memory_test_entity_{i-1}", entity.id, "follows")
+                atlas.add_relationship(
+                    f"memory_test_entity_{i-1}", entity.id, "follows"
+                )
 
         after_creation_memory = process.memory_info().rss / 1024 / 1024  # MB
         memory_increase = after_creation_memory - initial_memory
 
-        print(f"Memory usage increased by {memory_increase:.2f} MB for {entity_count} entities")
-        print(f"Average memory per entity: {memory_increase/entity_count:.4f} MB")
+        print(
+            f"Memory usage increased by {memory_increase:.2f} MB "
+            f"for {entity_count} entities"
+        )
+        print(
+            "Average memory per entity: "
+            f"{memory_increase / entity_count:.4f} MB"
+        )
 
         # Test memory cleanup
         del atlas
@@ -510,10 +574,14 @@ class TestMemoryUsage:
 
         # Memory usage should be reasonable
         assert memory_increase < 500  # Less than 500MB for 5000 entities
-        assert (memory_increase / entity_count) < 0.1  # Less than 100KB per entity
+        # Less than 100KB per entity.
+        assert (memory_increase / entity_count) < 0.1
 
-        # Some memory should be recovered (though not necessarily all due to Python's memory management)
-        assert memory_recovered > 0 or after_cleanup_memory < after_creation_memory * 1.1
+        # Python's memory management need not recover all memory immediately.
+        assert (
+            memory_recovered > 0
+            or after_cleanup_memory < after_creation_memory * 1.1
+        )
 
 
 class TestStressConditions:
@@ -566,21 +634,32 @@ class TestStressConditions:
 
         # Run stress test with multiple workers
         worker_count = 8
-        with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as executor:
-            futures = [executor.submit(stress_worker, i) for i in range(worker_count)]
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=worker_count
+        ) as executor:
+            futures = [
+                executor.submit(stress_worker, i) for i in range(worker_count)
+            ]
+            results = [
+                future.result()
+                for future in concurrent.futures.as_completed(futures)
+            ]
 
         # Analyze stress test results
         total_operations = sum(r["operations"] for r in results)
         total_errors = sum(r["errors"] for r in results)
         max_duration = max(r["duration"] for r in results)
 
-        print(f"Stress test completed: {total_operations} operations, {total_errors} errors")
+        print(
+            f"Stress test completed: {total_operations} operations, "
+            f"{total_errors} errors"
+        )
         print(f"Maximum worker duration: {max_duration:.3f} seconds")
         print(f"Error rate: {total_errors/total_operations*100:.2f}%")
 
         # System should remain stable under stress
-        assert total_errors / total_operations < 0.05  # Less than 5% error rate
+        # Less than 5% error rate.
+        assert total_errors / total_operations < 0.05
         assert max_duration < 30.0  # Should complete within 30 seconds
 
         # Verify system integrity after stress test
@@ -591,7 +670,6 @@ class TestStressConditions:
 
 if __name__ == "__main__":
     # Run performance tests without pytest dependency
-    import time
 
     print("🧪 Running ATLAS Performance Tests")
     print("=" * 60)
@@ -615,7 +693,10 @@ if __name__ == "__main__":
 
         try:
             instance = test_class()
-            test_methods = [method for method in dir(instance) if method.startswith('test_')]
+            test_methods = [
+                method for method in dir(instance)
+                if method.startswith('test_')
+            ]
 
             for test_method_name in test_methods:
                 total_tests += 1

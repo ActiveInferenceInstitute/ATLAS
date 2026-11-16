@@ -19,6 +19,7 @@ from datetime import datetime
 # Test fixture directory
 FIXTURES_DIR = Path(__file__).parent
 
+
 class TestDataGenerator:
     """Generator for consistent test data across test suites."""
 
@@ -37,7 +38,9 @@ class TestDataGenerator:
         }
 
     @staticmethod
-    def create_sample_pattern(pattern_id: str = "test_pattern") -> Dict[str, Any]:
+    def create_sample_pattern(
+        pattern_id: str = "test_pattern"
+    ) -> Dict[str, Any]:
         """Create a sample pattern for testing."""
         return {
             'id': pattern_id,
@@ -67,7 +70,9 @@ class TestDataGenerator:
         }
 
     @staticmethod
-    def create_test_dataset(entity_count: int = 10, pattern_count: int = 5) -> Dict[str, List[Dict[str, Any]]]:
+    def create_test_dataset(
+        entity_count: int = 10, pattern_count: int = 5
+    ) -> Dict[str, List[Dict[str, Any]]]:
         """Create a complete test dataset with entities and patterns."""
         entities = []
         patterns = []
@@ -88,15 +93,21 @@ class TestDataGenerator:
             'patterns': patterns
         }
 
+
 class MockATLASConfig:
     """Mock ATLAS configuration for testing."""
 
     def __init__(self, **kwargs):
-        self.auto_pattern_inference = kwargs.get('auto_pattern_inference', True)
+        self.auto_pattern_inference = kwargs.get(
+            'auto_pattern_inference', True
+        )
         self.enable_dynamic_typing = kwargs.get('enable_dynamic_typing', True)
         self.max_expansion_depth = kwargs.get('max_expansion_depth', 3)
-        self.enable_quality_metrics = kwargs.get('enable_quality_metrics', True)
+        self.enable_quality_metrics = kwargs.get(
+            'enable_quality_metrics', True
+        )
         self.log_level = kwargs.get('log_level', 'INFO')
+
 
 def load_test_fixture(fixture_name: str) -> Optional[Dict[str, Any]]:
     """
@@ -117,6 +128,7 @@ def load_test_fixture(fixture_name: str) -> Optional[Dict[str, Any]]:
             return None
     return None
 
+
 def save_test_fixture(fixture_name: str, data: Dict[str, Any]) -> bool:
     """
     Save test data as a fixture.
@@ -135,6 +147,7 @@ def save_test_fixture(fixture_name: str, data: Dict[str, Any]) -> bool:
         return True
     except Exception:
         return False
+
 
 # Export main classes and functions
 __all__ = [

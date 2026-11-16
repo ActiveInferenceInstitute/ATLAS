@@ -102,7 +102,9 @@ class Attribute(Entity):
 
             # Apply validation rules if any
             if not self._validate_value(new_value):
-                logger.warning(f"Value validation failed for attribute {self.id}")
+                logger.warning(
+                    f"Value validation failed for attribute {self.id}"
+                )
                 return False
 
             # Track transformation history
@@ -142,15 +144,22 @@ class Attribute(Entity):
         """
         try:
             for rule_name, rule_config in self.validation_rules.items():
-                if not self._apply_validation_rule(value, rule_name, rule_config):
-                    logger.warning(f"Validation rule '{rule_name}' failed for attribute {self.id}")
+                if not self._apply_validation_rule(
+                    value, rule_name, rule_config
+                ):
+                    logger.warning(
+                        f"Validation rule '{rule_name}' failed for attribute "
+                        f"{self.id}"
+                    )
                     return False
             return True
         except Exception as e:
             logger.error(f"Validation error for attribute {self.id}: {e}")
             return False
 
-    def _apply_validation_rule(self, value: Any, rule_name: str, rule_config: Dict[str, Any]) -> bool:
+    def _apply_validation_rule(
+        self, value: Any, rule_name: str, rule_config: Dict[str, Any]
+    ) -> bool:
         """Apply a specific validation rule."""
         try:
             if rule_name == "type":
@@ -197,7 +206,9 @@ class Attribute(Entity):
             logger.error(f"Error applying validation rule {rule_name}: {e}")
             return False
 
-    def add_validation_rule(self, rule_name: str, rule_config: Dict[str, Any]) -> bool:
+    def add_validation_rule(
+        self, rule_name: str, rule_config: Dict[str, Any]
+    ) -> bool:
         """
         Add a validation rule for this attribute.
 
@@ -210,10 +221,14 @@ class Attribute(Entity):
         """
         try:
             self.validation_rules[rule_name] = rule_config
-            logger.debug(f"Added validation rule '{rule_name}' to attribute {self.id}")
+            logger.debug(
+                f"Added validation rule '{rule_name}' to attribute {self.id}"
+            )
             return True
         except Exception as e:
-            logger.error(f"Failed to add validation rule to attribute {self.id}: {e}")
+            logger.error(
+                f"Failed to add validation rule to attribute {self.id}: {e}"
+            )
             return False
 
     def remove_validation_rule(self, rule_name: str) -> bool:
@@ -221,11 +236,17 @@ class Attribute(Entity):
         try:
             if rule_name in self.validation_rules:
                 del self.validation_rules[rule_name]
-                logger.debug(f"Removed validation rule '{rule_name}' from attribute {self.id}")
+                logger.debug(
+                    f"Removed validation rule '{rule_name}' from attribute "
+                    f"{self.id}"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to remove validation rule from attribute {self.id}: {e}")
+            logger.error(
+                f"Failed to remove validation rule from attribute {self.id}: "
+                f"{e}"
+            )
             return False
 
     def link_attribute(self, attribute_id: str) -> bool:
@@ -240,14 +261,18 @@ class Attribute(Entity):
         """
         try:
             if attribute_id in self.linked_attributes:
-                logger.debug(f"Attribute {attribute_id} already linked to {self.id}")
+                logger.debug(
+                    f"Attribute {attribute_id} already linked to {self.id}"
+                )
                 return False  # Already linked
 
             self.linked_attributes.add(attribute_id)
             logger.debug(f"Linked attribute {self.id} to {attribute_id}")
             return True
         except Exception as e:
-            logger.error(f"Failed to link attribute {self.id} to {attribute_id}: {e}")
+            logger.error(
+                f"Failed to link attribute {self.id} to {attribute_id}: {e}"
+            )
             return False
 
     def unlink_attribute(self, attribute_id: str) -> bool:
@@ -255,11 +280,16 @@ class Attribute(Entity):
         try:
             if attribute_id in self.linked_attributes:
                 self.linked_attributes.remove(attribute_id)
-                logger.debug(f"Unlinked attribute {self.id} from {attribute_id}")
+                logger.debug(
+                    f"Unlinked attribute {self.id} from {attribute_id}"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to unlink attribute {self.id} from {attribute_id}: {e}")
+            logger.error(
+                f"Failed to unlink attribute {self.id} from "
+                f"{attribute_id}: {e}"
+            )
             return False
 
     def get_transformation_history(self) -> List[Dict[str, Any]]:
@@ -310,7 +340,9 @@ class Attribute(Entity):
 
         # Restore attribute-specific data
         attribute.validation_rules = data.get('validation_rules', {})
-        attribute.transformation_history = data.get('transformation_history', [])
+        attribute.transformation_history = data.get(
+            'transformation_history', []
+        )
         attribute.linked_attributes = set(data.get('linked_attributes', []))
 
         # Restore entity-specific data
@@ -321,8 +353,14 @@ class Attribute(Entity):
         return attribute
 
     def __str__(self) -> str:
-        return f"Attribute(id='{self.id}', ref_id='{self.ref_id}', value={self.value}, type={self.data_type})"
+        return (
+            f"Attribute(id='{self.id}', ref_id='{self.ref_id}', "
+            f"value={self.value}, type={self.data_type})"
+        )
 
     def __repr__(self) -> str:
-        return (f"Attribute(id='{self.id}', ref_id='{self.ref_id}', value={self.value}, "
-                f"data_type='{self.data_type}', patterns={self.patterns})")
+        return (
+            f"Attribute(id='{self.id}', ref_id='{self.ref_id}', "
+            f"value={self.value}, data_type='{self.data_type}', "
+            f"patterns={self.patterns})"
+        )

@@ -1,28 +1,31 @@
 #!/usr/bin/env python3
 """
 Comprehensive test coverage for all ATLAS source modules.
-This test suite ensures complete coverage of all functions and methods in the src directory.
+This test suite ensures complete coverage of all functions and methods
+in the src directory.
 """
 
 import pytest
 import sys
 import os
-from typing import Any, Dict, List, Optional
-from unittest.mock import Mock, patch
 import tempfile
-import json
+import networkx as nx
 
 # Add src to path for imports in test environment
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from atlas.core.engine import ATLASEngine, ATLASConfig
-from atlas.entities.entity import Entity, EntityMetadata
+from atlas.entities.entity import Entity
 from atlas.entities.attribute import Attribute
 from atlas.patterns.pattern import Pattern
 from atlas.patterns.pattern_engine import PatternEngine
 from atlas.queries.iquery import iQuery, QueryPriority, QueryStatus
-from atlas.interfaces.prompt_interface import SimpleTransformInterface, create_identity_interface
-from atlas.utils.helpers import generate_id, timestamp_now, deep_merge, flatten_dict
+from atlas.interfaces.prompt_interface import (
+    SimpleTransformInterface, create_identity_interface
+)
+from atlas.utils.helpers import (
+    generate_id, timestamp_now, deep_merge, flatten_dict
+)
 
 # Import visualization modules (if available)
 try:
@@ -68,7 +71,9 @@ class TestCompleteSourceCoverage:
         assert query.id in self.atlas.queries
 
         # Test relationships
-        assert self.atlas.add_relationship(entity.id, pattern.id, "test_rel") is True
+        assert self.atlas.add_relationship(
+            entity.id, pattern.id, "test_rel"
+        ) is True
         assert self.atlas.graph.has_edge(entity.id, pattern.id)
 
         # Test search functionality
@@ -83,6 +88,10 @@ class TestCompleteSourceCoverage:
         # Test graph export
         export = self.atlas.export_graph("graphml")
         assert isinstance(export, str)
+        assert export
+        exported_graph = nx.parse_graphml(export)
+        assert set(exported_graph) == set(self.atlas.graph)
+        assert set(exported_graph.edges) == set(self.atlas.graph.edges)
 
         # Test node retrieval
         node = self.atlas.get_node(entity.id)
@@ -250,7 +259,9 @@ class TestCompleteSourceCoverage:
         self.pattern_engine.add_pattern(pattern1)
 
         # Test similarity calculation
-        similarity = self.pattern_engine.calculate_pattern_similarity("pattern1", "pattern2")
+        similarity = self.pattern_engine.calculate_pattern_similarity(
+            "pattern1", "pattern2"
+        )
         assert isinstance(similarity, float)
         assert 0.0 <= similarity <= 1.0
 
@@ -333,7 +344,9 @@ class TestCompleteSourceCoverage:
         def test_transform(data):
             return str(data).upper()
 
-        interface = SimpleTransformInterface(test_transform, interface_id="test_interface")
+        interface = SimpleTransformInterface(
+            test_transform, interface_id="test_interface"
+        )
         result = interface.transform("hello")
         assert result == "HELLO"
 
@@ -348,7 +361,9 @@ class TestCompleteSourceCoverage:
                 raise ValueError("Input must be string")
             return data.lower()
 
-        validated_interface = SimpleTransformInterface(validate_transform, interface_id="validated")
+        validated_interface = SimpleTransformInterface(
+            validate_transform, interface_id="validated"
+        )
         result = validated_interface.transform("TEST")
         assert result == "test"
 
@@ -389,7 +404,10 @@ class TestCompleteSourceCoverage:
         assert "b.c" in flattened
         assert "b.d.e" in flattened
 
-    @pytest.mark.skipif(not VISUALIZATION_AVAILABLE, reason="Visualization modules not available")
+    @pytest.mark.skipif(
+        not VISUALIZATION_AVAILABLE,
+        reason="Visualization modules not available"
+    )
     def test_visualization_complete_functionality(self):
         """Test all visualization functionality (if available)."""
         # Create test data
@@ -443,7 +461,7 @@ class TestCompleteSourceCoverage:
         # Test with invalid data
         try:
             Entity(entity_id="", attributes=None)
-        except:
+        except Exception:
             pass  # Expected to handle gracefully
 
         # Test with empty engine
@@ -458,7 +476,9 @@ class TestCompleteSourceCoverage:
         assert isinstance(usage, dict)
 
         # Test invalid relationships
-        result = self.atlas.add_relationship("nonexistent1", "nonexistent2", "invalid")
+        result = self.atlas.add_relationship(
+            "nonexistent1", "nonexistent2", "invalid"
+        )
         assert isinstance(result, bool)
 
         # Test serialization with invalid data

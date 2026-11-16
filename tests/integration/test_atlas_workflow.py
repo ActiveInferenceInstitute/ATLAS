@@ -2,13 +2,11 @@
 """
 Integration tests for ATLAS workflow.
 
-These tests focus on testing end-to-end ATLAS workflows and component interactions.
+These tests cover end-to-end workflows and component interactions.
 """
 
 import sys
-import os
 from pathlib import Path
-from typing import Optional
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
@@ -22,11 +20,6 @@ from atlas.queries.iquery import iQuery, QueryPriority
 
 class TestATLASWorkflowIntegration:
     """Integration tests for ATLAS workflow."""
-
-    def __init__(self):
-        """Initialize test class."""
-        self.config: Optional[ATLASConfig] = None
-        self.atlas: Optional[ATLASEngine] = None
 
     def setup_method(self):
         """Set up test fixtures."""
@@ -130,7 +123,9 @@ class TestATLASWorkflowIntegration:
         # Add searchable content
         entity = Entity(
             entity_id="searchable_entity",
-            attributes={"name": "Searchable Entity", "content": "important test data"},
+            attributes={
+                "name": "Searchable Entity", "content": "important test data"
+            },
             patterns=[]
         )
 
@@ -138,8 +133,8 @@ class TestATLASWorkflowIntegration:
 
         # Perform search
         results = self.atlas.query("searchable")
-        # Note: Mock implementation returns empty list, but test structure is correct
         assert isinstance(results, list)
+        assert any(result['id'] == entity.id for result in results)
 
     def test_configuration_workflow(self):
         """Test different configuration workflows."""
@@ -169,23 +164,20 @@ class TestATLASWorkflowIntegration:
 
     def test_workflow_error_handling(self):
         """Test workflow error handling and recovery."""
-        # Test handling of invalid data
-        try:
-            # Attempt to add entity with invalid data structure
-            invalid_entity = Entity(
-                entity_id="",  # Invalid empty ID
-                attributes=None,  # Invalid None attributes
-                patterns=None   # Invalid None patterns
-            )
+        # Empty optional inputs are supported constructor defaults.
+        entity = Entity(entity_id="", attributes=None, patterns=None)
+        assert entity.id
+        assert entity.attributes == {}
+        assert entity.patterns == []
+        result = self.atlas.add_entity(entity.id, entity.to_dict())
+        assert isinstance(result, bool)
+        assert result is True
 
-            # This should handle gracefully
-            result = self.atlas.add_entity(invalid_entity.id, invalid_entity.to_dict())
-            # Result may be True or False depending on implementation
-            assert isinstance(result, bool)
-
-        except Exception as e:
-            # Error handling is acceptable
-            assert isinstance(e, Exception)
+        # Invalid endpoints must fail without registering placeholder nodes.
+        assert self.atlas.add_relationship(
+            entity.id, "missing", "related"
+        ) is False
+        assert "missing" not in self.atlas.graph
 
     def test_workflow_state_consistency(self):
         """Test workflow state consistency across operations."""
@@ -203,5 +195,24 @@ class TestATLASWorkflowIntegration:
         updated_metrics = self.atlas.get_metrics()
 
         # Verify state consistency
-        assert updated_metrics['entities_created'] >= initial_metrics['entities_created']
+        assert (
+            updated_metrics['entities_created']
+            >= initial_metrics['entities_created']
+        )
         assert entity.id in self.atlas.entities
+
+
+if __name__ == "__main__":
+    failed_tests = 0
+    for method_name in dir(TestATLASWorkflowIntegration):
+        if not method_name.startswith('test_'):
+            continue
+        try:
+            instance = TestATLASWorkflowIntegration()
+            instance.setup_method()
+            getattr(instance, method_name)()
+            print(f"PASSED: {method_name}")
+        except Exception as exc:
+            failed_tests += 1
+            print(f"FAILED: {method_name}: {exc}")
+    sys.exit(1 if failed_tests else 0)

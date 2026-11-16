@@ -6,17 +6,13 @@ network topology, entity relationships, and system structure visualization.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Set
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.figure import Figure
-from matplotlib.axes import Axes
 import networkx as nx
-import numpy as np
 import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-import pandas as pd
 
 from .common import GRAPH_COLOR_SCHEMES
 
@@ -79,18 +75,21 @@ class GraphVisualizer:
 
         try:
             fig, ax = plt.subplots(figsize=figsize)
-            graph = self.atlas_engine.graph
+            graph = self.atlas_engine.reconcile_graph()
 
             if not graph.nodes():
-                ax.text(0.5, 0.5, 'No nodes to display',
-                       ha='center', va='center', transform=ax.transAxes)
+                ax.text(
+                    0.5, 0.5, 'No nodes to display',
+                    ha='center', va='center', transform=ax.transAxes,
+                )
                 return fig
 
             # Calculate layout
-            if layout in self.layouts:
-                pos = self.layouts[layout](graph)
-            else:
-                pos = nx.spring_layout(graph)
+            layout_name = layout if layout in self.layouts else 'spring'
+            layout_options = (
+                {'seed': 42} if layout_name in ('spring', 'random') else {}
+            )
+            pos = self.layouts[layout_name](graph, **layout_options)
 
             # Prepare node attributes
             node_colors = []
@@ -99,7 +98,9 @@ class GraphVisualizer:
             for node in graph.nodes():
                 node_data = graph.nodes[node]
                 node_type = node_data.get('node_type', 'unknown')
-                node_colors.append(self.color_schemes.get(node_type, '#cccccc'))
+                node_colors.append(
+                    self.color_schemes.get(node_type, '#cccccc')
+                )
 
                 if node_size_attr and node_size_attr in node_data:
                     size = node_data[node_size_attr]
@@ -124,8 +125,10 @@ class GraphVisualizer:
             )
 
             if show_labels:
-                labels = {node: node[:10] + '...' if len(node) > 10 else node
-                         for node in graph.nodes()}
+                labels = {
+                    node: node[:10] + '...' if len(node) > 10 else node
+                    for node in graph.nodes()
+                }
                 nx.draw_networkx_labels(graph, pos, labels, ax=ax, font_size=8)
 
             # Create legend
@@ -135,7 +138,10 @@ class GraphVisualizer:
             ]
             ax.legend(handles=legend_elements, loc='upper right')
 
-            ax.set_title(f'ATLAS Network Topology ({layout} layout)', fontsize=14, fontweight='bold')
+            ax.set_title(
+                f'ATLAS Network Topology ({layout} layout)',
+                fontsize=14, fontweight='bold',
+            )
             ax.axis('off')
 
             plt.tight_layout()
@@ -175,11 +181,13 @@ class GraphVisualizer:
 
         try:
             fig, ax = plt.subplots(figsize=figsize)
-            graph = self.atlas_engine.graph
+            graph = self.atlas_engine.reconcile_graph()
 
             if entity_id not in graph.nodes():
-                ax.text(0.5, 0.5, f'Entity {entity_id} not found',
-                       ha='center', va='center', transform=ax.transAxes)
+                ax.text(
+                    0.5, 0.5, f'Entity {entity_id} not found',
+                    ha='center', va='center', transform=ax.transAxes,
+                )
                 return fig
 
             # Get subgraph with entities within specified depth
@@ -199,10 +207,11 @@ class GraphVisualizer:
             subgraph = graph.subgraph(nodes_to_include)
 
             # Calculate layout
-            if layout in self.layouts:
-                pos = self.layouts[layout](subgraph)
-            else:
-                pos = nx.spring_layout(subgraph)
+            layout_name = layout if layout in self.layouts else 'spring'
+            layout_options = (
+                {'seed': 42} if layout_name in ('spring', 'random') else {}
+            )
+            pos = self.layouts[layout_name](subgraph, **layout_options)
 
             # Color nodes by type and highlight target entity
             node_colors = []
@@ -212,7 +221,9 @@ class GraphVisualizer:
                 else:
                     node_data = subgraph.nodes[node]
                     node_type = node_data.get('node_type', 'unknown')
-                    node_colors.append(self.color_schemes.get(node_type, '#cccccc'))
+                    node_colors.append(
+                        self.color_schemes.get(node_type, '#cccccc')
+                    )
 
             # Draw the graph
             nx.draw_networkx_nodes(
@@ -230,12 +241,16 @@ class GraphVisualizer:
                 arrowsize=20
             )
 
-            labels = {node: node[:8] + '...' if len(node) > 8 else node
-                     for node in subgraph.nodes()}
+            labels = {
+                node: node[:8] + '...' if len(node) > 8 else node
+                for node in subgraph.nodes()
+            }
             nx.draw_networkx_labels(subgraph, pos, labels, ax=ax, font_size=9)
 
-            ax.set_title(f'Entity Relationships: {entity_id} (depth={depth})',
-                        fontsize=12, fontweight='bold')
+            ax.set_title(
+                f'Entity Relationships: {entity_id} (depth={depth})',
+                fontsize=12, fontweight='bold',
+            )
             ax.axis('off')
 
             plt.tight_layout()
@@ -270,7 +285,7 @@ class GraphVisualizer:
             raise ValueError("ATLAS engine not provided")
 
         try:
-            graph = self.atlas_engine.graph
+            graph = self.atlas_engine.reconcile_graph()
 
             if not graph.nodes():
                 # Return empty figure
@@ -284,7 +299,7 @@ class GraphVisualizer:
                 return fig
 
             # Calculate layout
-            pos = nx.spring_layout(graph, k=1, iterations=50)
+            pos = nx.spring_layout(graph, k=1, iterations=50, seed=42)
 
             # Prepare edge traces
             edge_x = []
@@ -298,14 +313,20 @@ class GraphVisualizer:
                 edge_y.extend([y0, y1, None])
 
                 edge_data = graph.edges[edge]
-                relationship_type = edge_data.get('relationship_type', 'related')
-                edge_info.append(f"{edge[0]} → {edge[1]} ({relationship_type})")
+                records = edge_data.get('relationships', [edge_data])
+                label = ', '.join(
+                    str(record.get('relationship_type', 'related'))
+                    for record in records
+                )
+                text = f"{edge[0]} → {edge[1]} ({label})"
+                edge_info.extend([text, text, None])
 
             # Create edge trace
             edge_trace = go.Scatter(
                 x=edge_x, y=edge_y,
                 line=dict(width=0.5, color='#888'),
-                hoverinfo='none',
+                hoverinfo='text',
+                text=edge_info,
                 mode='lines'
             )
 
@@ -334,7 +355,9 @@ class GraphVisualizer:
                         hover_text += f"{key}: {value}<br>"
 
                 node_text.append(hover_text)
-                node_colors.append(self.color_schemes.get(node_type, '#cccccc'))
+                node_colors.append(
+                    self.color_schemes.get(node_type, '#cccccc')
+                )
 
                 # Calculate node size based on connections
                 degree = graph.degree(node)
@@ -345,7 +368,10 @@ class GraphVisualizer:
                 x=node_x, y=node_y,
                 mode='markers+text',
                 hoverinfo='text',
-                text=[node[:10] + '...' if len(node) > 10 else node for node in graph.nodes()],
+                text=[
+                    node[:10] + '...' if len(node) > 10 else node
+                    for node in graph.nodes()
+                ],
                 textposition="middle center",
                 hovertext=node_text,
                 marker=dict(
@@ -357,26 +383,32 @@ class GraphVisualizer:
             )
 
             # Create figure
-            fig = go.Figure(data=[edge_trace, node_trace],
-                           layout=go.Layout(
-                               title='Interactive ATLAS Network',
-                               title_font_size=16,
-                               showlegend=False,
-                               hovermode='closest',
-                               margin=dict(b=20,l=5,r=5,t=40),
-                               annotations=[ dict(
-                                   text="Click and drag to explore the network",
-                                   showarrow=False,
-                                   xref="paper", yref="paper",
-                                   x=0.005, y=-0.002,
-                                   xanchor='left', yanchor='bottom',
-                                   font=dict(color="#888", size=12)
-                               )],
-                               xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                               yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                               width=width,
-                               height=height
-                           ))
+            fig = go.Figure(
+                data=[edge_trace, node_trace],
+                layout=go.Layout(
+                    title='Interactive ATLAS Network',
+                    title_font_size=16,
+                    showlegend=False,
+                    hovermode='closest',
+                    margin=dict(b=20, l=5, r=5, t=40),
+                    annotations=[dict(
+                        text="Click and drag to explore the network",
+                        showarrow=False,
+                        xref="paper", yref="paper",
+                        x=0.005, y=-0.002,
+                        xanchor='left', yanchor='bottom',
+                        font=dict(color="#888", size=12),
+                    )],
+                    xaxis=dict(
+                        showgrid=False, zeroline=False, showticklabels=False,
+                    ),
+                    yaxis=dict(
+                        showgrid=False, zeroline=False, showticklabels=False,
+                    ),
+                    width=width,
+                    height=height,
+                ),
+            )
 
             if save_path:
                 fig.write_html(save_path)
@@ -408,6 +440,7 @@ class GraphVisualizer:
         try:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
+            self.atlas_engine.reconcile_graph()
             # Count component types
             type_counts = {}
             for node in self.atlas_engine.graph.nodes():
@@ -416,13 +449,19 @@ class GraphVisualizer:
                 type_counts[node_type] = type_counts.get(node_type, 0) + 1
 
             if not type_counts:
-                ax1.text(0.5, 0.5, 'No data to display', ha='center', va='center')
-                ax2.text(0.5, 0.5, 'No data to display', ha='center', va='center')
+                ax1.text(
+                    0.5, 0.5, 'No data to display', ha='center', va='center',
+                )
+                ax2.text(
+                    0.5, 0.5, 'No data to display', ha='center', va='center',
+                )
                 return fig
 
             # Pie chart
-            colors = [self.color_schemes.get(t, '#cccccc') for t in type_counts.keys()]
-            wedges, texts, autotexts = ax1.pie(
+            colors = [
+                self.color_schemes.get(t, '#cccccc') for t in type_counts
+            ]
+            ax1.pie(
                 type_counts.values(),
                 labels=type_counts.keys(),
                 colors=colors,
@@ -432,7 +471,9 @@ class GraphVisualizer:
             ax1.set_title('Component Type Distribution', fontweight='bold')
 
             # Bar chart
-            bars = ax2.bar(type_counts.keys(), type_counts.values(), color=colors)
+            bars = ax2.bar(
+                type_counts.keys(), type_counts.values(), color=colors,
+            )
             ax2.set_title('Component Type Counts', fontweight='bold')
             ax2.set_ylabel('Count')
             ax2.tick_params(axis='x', rotation=45)
@@ -440,9 +481,10 @@ class GraphVisualizer:
             # Add value labels on bars
             for bar in bars:
                 height = bar.get_height()
-                ax2.text(bar.get_x() + bar.get_width()/2., height,
-                        f'{int(height)}',
-                        ha='center', va='bottom')
+                ax2.text(
+                    bar.get_x() + bar.get_width() / 2., height,
+                    f'{int(height)}', ha='center', va='bottom',
+                )
 
             plt.tight_layout()
 
@@ -463,42 +505,26 @@ class GraphVisualizer:
             base_path: Base path for export files (without extension)
 
         Returns:
-            Dictionary mapping format names to file paths
+            Successful format paths only. A partial mapping means partial
+            output; an empty mapping is failure. Existing successful files
+            are retained if another format fails.
         """
         if not self.atlas_engine:
             raise ValueError("ATLAS engine not provided")
 
         exported_files = {}
 
-        try:
-            graph = self.atlas_engine.graph
-
-            # GraphML format
-            graphml_path = f"{base_path}.graphml"
-            nx.write_graphml(graph, graphml_path)
-            exported_files['graphml'] = graphml_path
-
-            # GEXF format
-            gexf_path = f"{base_path}.gexf"
-            nx.write_gexf(graph, gexf_path)
-            exported_files['gexf'] = gexf_path
-
-            # Edge list
-            edgelist_path = f"{base_path}.edgelist"
-            nx.write_edgelist(graph, edgelist_path, data=True)
-            exported_files['edgelist'] = edgelist_path
-
-            # Adjacency list
-            adjlist_path = f"{base_path}.adjlist"
-            nx.write_adjlist(graph, adjlist_path)
-            exported_files['adjlist'] = adjlist_path
-
-            logger.info(f"Exported graph in {len(exported_files)} formats")
-            return exported_files
-
-        except Exception as e:
-            logger.error(f"Failed to export graph formats: {e}")
-            return {}
+        for format_name in ('graphml', 'gexf', 'edgelist', 'adjlist'):
+            try:
+                content = self.atlas_engine.export_graph(format_name)
+                if not content:
+                    raise ValueError(f"{format_name} serialization failed")
+                path = Path(f"{base_path}.{format_name}")
+                path.write_text(content, encoding='utf-8')
+                exported_files[format_name] = str(path)
+            except Exception as e:
+                logger.error("Failed to export %s: %s", format_name, e)
+        return exported_files
 
     def generate_graph_statistics(self) -> Dict[str, Any]:
         """
@@ -511,7 +537,7 @@ class GraphVisualizer:
             raise ValueError("ATLAS engine not provided")
 
         try:
-            graph = self.atlas_engine.graph
+            graph = self.atlas_engine.reconcile_graph()
 
             if not graph.nodes():
                 return {'error': 'No nodes in graph'}
@@ -524,8 +550,15 @@ class GraphVisualizer:
                     'is_directed': graph.is_directed()
                 },
                 'connectivity': {
-                    'is_connected': nx.is_weakly_connected(graph) if graph.is_directed() else nx.is_connected(graph),
-                    'connected_components': nx.number_weakly_connected_components(graph) if graph.is_directed() else nx.number_connected_components(graph)
+                    'is_connected': (
+                        nx.is_weakly_connected(graph) if graph.is_directed()
+                        else nx.is_connected(graph)
+                    ),
+                    'connected_components': (
+                        nx.number_weakly_connected_components(graph)
+                        if graph.is_directed()
+                        else nx.number_connected_components(graph)
+                    ),
                 },
                 'centrality': {},
                 'node_types': {}

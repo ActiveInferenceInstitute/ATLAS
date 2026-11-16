@@ -2,17 +2,17 @@
 Pattern visualization module for ATLAS.
 
 Provides comprehensive pattern visualization capabilities including
-hierarchy visualization, inheritance relationships, and pattern analysis charts.
+hierarchy visualization, inheritance relationships, and pattern analysis
+charts.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Set
+from typing import Optional, Tuple
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.figure import Figure
 import networkx as nx
 import numpy as np
-import seaborn as sns
 import pandas as pd
 from collections import defaultdict
 
@@ -73,46 +73,34 @@ class PatternVisualizer:
         try:
             fig, ax = plt.subplots(figsize=figsize)
 
-            # Build pattern graph
-            pattern_graph = nx.DiGraph()
-            patterns = {}
-
-            # Collect pattern data
-            for node_id in self.atlas_engine.graph.nodes():
-                node_data = self.atlas_engine.graph.nodes[node_id]
-                if node_data.get('node_type') == 'pattern':
-                    patterns[node_id] = node_data
-                    pattern_graph.add_node(node_id)
-
-            # Add hierarchy edges
-            for pattern_id, pattern_data in patterns.items():
-                parents = pattern_data.get('parents', [])
-                children = pattern_data.get('children', [])
-
-                for parent_id in parents:
-                    if parent_id in patterns:
-                        pattern_graph.add_edge(parent_id, pattern_id)
-
-                for child_id in children:
-                    if child_id in patterns:
-                        pattern_graph.add_edge(pattern_id, child_id)
+            # Consume reconciled engine topology, including explicit edges.
+            pattern_graph = self.atlas_engine.get_pattern_hierarchy_graph()
+            patterns = self.atlas_engine.patterns
 
             if not pattern_graph.nodes():
-                ax.text(0.5, 0.5, 'No patterns to display',
-                       ha='center', va='center', transform=ax.transAxes)
+                ax.text(
+                    0.5, 0.5, 'No patterns to display',
+                    ha='center', va='center', transform=ax.transAxes
+                )
                 return fig
 
             # Calculate layout
             if layout == 'hierarchical':
-                # Use graphviz_layout if available, otherwise fall back to spring
+                # Use Graphviz if available, otherwise a local spring layout.
                 try:
-                    pos = nx.nx_agraph.graphviz_layout(pattern_graph, prog='dot')
-                except:
-                    pos = nx.spring_layout(pattern_graph, k=2, iterations=50)
+                    pos = nx.nx_agraph.graphviz_layout(
+                        pattern_graph, prog='dot'
+                    )
+                except Exception:
+                    pos = nx.spring_layout(
+                        pattern_graph, k=2, iterations=50, seed=42
+                    )
             elif layout == 'circular':
                 pos = nx.circular_layout(pattern_graph)
             else:
-                pos = nx.spring_layout(pattern_graph, k=2, iterations=50)
+                pos = nx.spring_layout(
+                    pattern_graph, k=2, iterations=50, seed=42
+                )
 
             # Categorize nodes
             node_categories = {}
@@ -130,13 +118,18 @@ class PatternVisualizer:
                     node_categories[node] = 'orphan'
 
             # Prepare node attributes
-            node_colors = [self.hierarchy_colors[node_categories[node]] for node in pattern_graph.nodes()]
+            node_colors = [
+                self.hierarchy_colors[node_categories[node]]
+                for node in pattern_graph.nodes()
+            ]
 
             if show_qkit_size:
                 node_sizes = []
                 for node in pattern_graph.nodes():
                     qkit_size = len(patterns[node].get('qkit', []))
-                    node_sizes.append(max(200, min(800, qkit_size * 100 + 200)))
+                    node_sizes.append(
+                        max(200, min(800, qkit_size * 100 + 200))
+                    )
             else:
                 node_sizes = [400] * len(pattern_graph.nodes())
 
@@ -158,18 +151,28 @@ class PatternVisualizer:
             )
 
             # Add labels
-            labels = {node: node[:12] + '...' if len(node) > 12 else node
-                     for node in pattern_graph.nodes()}
-            nx.draw_networkx_labels(pattern_graph, pos, labels, ax=ax, font_size=8)
+            labels = {
+                node: node[:12] + '...' if len(node) > 12 else node
+                for node in pattern_graph.nodes()
+            }
+            nx.draw_networkx_labels(
+                pattern_graph, pos, labels, ax=ax, font_size=8
+            )
 
             # Create legend
             legend_elements = [
                 mpatches.Patch(color=color, label=category.title())
                 for category, color in self.hierarchy_colors.items()
             ]
-            ax.legend(handles=legend_elements, loc='upper right', title='Pattern Types')
+            ax.legend(
+                handles=legend_elements, loc='upper right',
+                title='Pattern Types'
+            )
 
-            ax.set_title(f'Pattern Hierarchy ({layout} layout)', fontsize=14, fontweight='bold')
+            ax.set_title(
+                f'Pattern Hierarchy ({layout} layout)',
+                fontsize=14, fontweight='bold'
+            )
             ax.axis('off')
 
             plt.tight_layout()
@@ -213,7 +216,9 @@ class PatternVisualizer:
                 if node_data.get('node_type') == 'pattern':
                     usage_count = node_data.get('usage_count', 0)
                     if usage_count >= min_usage:
-                        effectiveness = node_data.get('effectiveness_score', 0.0)
+                        effectiveness = node_data.get(
+                            'effectiveness_score', 0.0
+                        )
                         qkit_size = len(node_data.get('qkit', []))
                         instance_count = len(node_data.get('instances', []))
 
@@ -227,8 +232,10 @@ class PatternVisualizer:
 
             if not pattern_data:
                 for ax in [ax1, ax2, ax3, ax4]:
-                    ax.text(0.5, 0.5, 'No pattern data available',
-                           ha='center', va='center', transform=ax.transAxes)
+                    ax.text(
+                        0.5, 0.5, 'No pattern data available',
+                        ha='center', va='center', transform=ax.transAxes
+                    )
                 return fig
 
             df = pd.DataFrame(pattern_data)
@@ -249,10 +256,12 @@ class PatternVisualizer:
 
             # Plot 2: Top patterns by effectiveness
             top_patterns = df.nlargest(10, 'effectiveness_score')
-            bars = ax2.barh(
+            ax2.barh(
                 range(len(top_patterns)),
                 top_patterns['effectiveness_score'],
-                color=self.effectiveness_colormap(top_patterns['effectiveness_score'])
+                color=self.effectiveness_colormap(
+                    top_patterns['effectiveness_score']
+                )
             )
             ax2.set_yticks(range(len(top_patterns)))
             ax2.set_yticklabels([p[:15] + '...' if len(p) > 15 else p
@@ -261,7 +270,10 @@ class PatternVisualizer:
             ax2.set_title('Top 10 Most Effective Patterns')
 
             # Plot 3: Usage distribution histogram
-            ax3.hist(df['usage_count'], bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+            ax3.hist(
+                df['usage_count'], bins=20, alpha=0.7,
+                color='skyblue', edgecolor='black'
+            )
             ax3.set_xlabel('Usage Count')
             ax3.set_ylabel('Frequency')
             ax3.set_title('Pattern Usage Distribution')
@@ -301,7 +313,7 @@ class PatternVisualizer:
 
         Args:
             root_pattern_id: ID of the root pattern
-            max_depth: Maximum depth to traverse
+            max_depth: Maximum edge distance from the root (inclusive)
             figsize: Figure size tuple
             save_path: Optional path to save the figure
 
@@ -314,40 +326,28 @@ class PatternVisualizer:
         try:
             fig, ax = plt.subplots(figsize=figsize)
 
-            # Build inheritance tree
-            tree = nx.DiGraph()
-            patterns = {}
+            hierarchy = self.atlas_engine.get_pattern_hierarchy_graph()
 
-            # Get all patterns
-            for node_id in self.atlas_engine.graph.nodes():
-                node_data = self.atlas_engine.graph.nodes[node_id]
-                if node_data.get('node_type') == 'pattern':
-                    patterns[node_id] = node_data
-
-            if root_pattern_id not in patterns:
-                ax.text(0.5, 0.5, f'Root pattern {root_pattern_id} not found',
-                       ha='center', va='center', transform=ax.transAxes)
+            if root_pattern_id not in hierarchy:
+                ax.text(
+                    0.5, 0.5, f'Root pattern {root_pattern_id} not found',
+                    ha='center', va='center', transform=ax.transAxes
+                )
                 return fig
 
-            # Traverse inheritance tree
-            def add_children(pattern_id, current_depth):
-                if current_depth >= max_depth:
-                    return
-
-                if pattern_id in patterns:
-                    tree.add_node(pattern_id, depth=current_depth)
-                    children = patterns[pattern_id].get('children', [])
-
-                    for child_id in children:
-                        if child_id in patterns:
-                            tree.add_edge(pattern_id, child_id)
-                            add_children(child_id, current_depth + 1)
-
-            add_children(root_pattern_id, 0)
+            # Shortest-path depths avoid repeated visits and retain effective
+            # edges among visible descendants, including cyclic relationships.
+            depths = dict(nx.single_source_shortest_path_length(
+                hierarchy, root_pattern_id, cutoff=max_depth
+            ))
+            tree = hierarchy.subgraph(depths).copy()
+            nx.set_node_attributes(tree, depths, 'depth')
 
             if not tree.nodes():
-                ax.text(0.5, 0.5, 'No inheritance tree found',
-                       ha='center', va='center', transform=ax.transAxes)
+                ax.text(
+                    0.5, 0.5, 'No inheritance tree found',
+                    ha='center', va='center', transform=ax.transAxes
+                )
                 return fig
 
             # Calculate hierarchical layout
@@ -362,7 +362,9 @@ class PatternVisualizer:
             # Position nodes
             for depth, nodes in depth_nodes.items():
                 y = -depth
-                x_positions = np.linspace(-len(nodes)/2, len(nodes)/2, len(nodes))
+                x_positions = np.linspace(
+                    -len(nodes) / 2, len(nodes) / 2, len(nodes)
+                )
                 for i, node in enumerate(nodes):
                     pos[node] = (x_positions[i], y)
 
@@ -370,7 +372,9 @@ class PatternVisualizer:
             node_colors = []
             for node in tree.nodes():
                 depth = tree.nodes[node].get('depth', 0)
-                color_intensity = min(1.0, depth / max_depth)
+                color_intensity = (
+                    min(1.0, depth / max_depth) if max_depth > 0 else 0.0
+                )
                 node_colors.append(plt.cm.viridis(color_intensity))
 
             # Draw the tree
@@ -389,11 +393,16 @@ class PatternVisualizer:
                 arrowsize=20
             )
 
-            labels = {node: node[:10] + '...' if len(node) > 10 else node
-                     for node in tree.nodes()}
+            labels = {
+                node: node[:10] + '...' if len(node) > 10 else node
+                for node in tree.nodes()
+            }
             nx.draw_networkx_labels(tree, pos, labels, ax=ax, font_size=9)
 
-            ax.set_title(f'Inheritance Tree: {root_pattern_id}', fontsize=14, fontweight='bold')
+            ax.set_title(
+                f'Inheritance Tree: {root_pattern_id}',
+                fontsize=14, fontweight='bold'
+            )
             ax.axis('off')
 
             plt.tight_layout()
@@ -431,11 +440,13 @@ class PatternVisualizer:
             fig, ax = plt.subplots(figsize=figsize)
 
             # Get pattern IDs
-            pattern_ids = list(self.pattern_engine.patterns.keys())[:max_patterns]
+            pattern_ids = list(self.pattern_engine.patterns)[:max_patterns]
 
             if len(pattern_ids) < 2:
-                ax.text(0.5, 0.5, 'Need at least 2 patterns for similarity matrix',
-                       ha='center', va='center', transform=ax.transAxes)
+                ax.text(
+                    0.5, 0.5, 'Need at least 2 patterns for similarity matrix',
+                    ha='center', va='center', transform=ax.transAxes
+                )
                 return fig
 
             # Calculate similarity matrix
@@ -446,20 +457,27 @@ class PatternVisualizer:
                     if i == j:
                         similarity_matrix[i, j] = 1.0
                     else:
-                        similarity = self.pattern_engine.calculate_pattern_similarity(
-                            pattern1_id, pattern2_id
+                        similarity = (
+                            self.pattern_engine.calculate_pattern_similarity(
+                                pattern1_id, pattern2_id
+                            )
                         )
                         similarity_matrix[i, j] = similarity
 
             # Create heatmap
-            im = ax.imshow(similarity_matrix, cmap='RdYlBu_r', aspect='auto', vmin=0, vmax=1)
+            im = ax.imshow(
+                similarity_matrix, cmap='RdYlBu_r', aspect='auto',
+                vmin=0, vmax=1
+            )
 
             # Set ticks and labels
             ax.set_xticks(range(len(pattern_ids)))
             ax.set_yticks(range(len(pattern_ids)))
-            ax.set_xticklabels([p[:12] + '...' if len(p) > 12 else p for p in pattern_ids],
-                              rotation=45, ha='right')
-            ax.set_yticklabels([p[:12] + '...' if len(p) > 12 else p for p in pattern_ids])
+            labels = [
+                p[:12] + '...' if len(p) > 12 else p for p in pattern_ids
+            ]
+            ax.set_xticklabels(labels, rotation=45, ha='right')
+            ax.set_yticklabels(labels)
 
             # Add colorbar
             cbar = plt.colorbar(im, ax=ax)
@@ -468,12 +486,19 @@ class PatternVisualizer:
             # Add text annotations
             for i in range(len(pattern_ids)):
                 for j in range(len(pattern_ids)):
-                    text = ax.text(j, i, f'{similarity_matrix[i, j]:.2f}',
-                                 ha='center', va='center',
-                                 color='white' if similarity_matrix[i, j] < 0.5 else 'black',
-                                 fontsize=8)
+                    ax.text(
+                        j, i, f'{similarity_matrix[i, j]:.2f}',
+                        ha='center', va='center',
+                        color=(
+                            'white' if similarity_matrix[i, j] < 0.5
+                            else 'black'
+                        ),
+                        fontsize=8
+                    )
 
-            ax.set_title('Pattern Similarity Matrix', fontsize=14, fontweight='bold')
+            ax.set_title(
+                'Pattern Similarity Matrix', fontsize=14, fontweight='bold'
+            )
 
             plt.tight_layout()
 
@@ -509,7 +534,6 @@ class PatternVisualizer:
 
             # Collect QKit data
             qkit_sizes = []
-            qkit_overlaps = defaultdict(int)
             all_qkit_items = set()
             pattern_qkits = {}
 
@@ -523,13 +547,17 @@ class PatternVisualizer:
 
             if not qkit_sizes:
                 for ax in [ax1, ax2, ax3, ax4]:
-                    ax.text(0.5, 0.5, 'No QKit data available',
-                           ha='center', va='center', transform=ax.transAxes)
+                    ax.text(
+                        0.5, 0.5, 'No QKit data available',
+                        ha='center', va='center', transform=ax.transAxes
+                    )
                 return fig
 
             # Plot 1: QKit size distribution
-            ax1.hist(qkit_sizes, bins=max(1, len(set(qkit_sizes))),
-                    alpha=0.7, color='lightblue', edgecolor='black')
+            ax1.hist(
+                qkit_sizes, bins=max(1, len(set(qkit_sizes))),
+                alpha=0.7, color='lightblue', edgecolor='black'
+            )
             ax1.set_xlabel('QKit Size')
             ax1.set_ylabel('Number of Patterns')
             ax1.set_title('QKit Size Distribution')
@@ -538,19 +566,26 @@ class PatternVisualizer:
             overlap_counts = []
             pattern_pairs = list(pattern_qkits.keys())
             for i, pattern1 in enumerate(pattern_pairs):
-                for pattern2 in pattern_pairs[i+1:]:
-                    overlap = len(pattern_qkits[pattern1] & pattern_qkits[pattern2])
+                for pattern2 in pattern_pairs[i + 1:]:
+                    overlap = len(
+                        pattern_qkits[pattern1] & pattern_qkits[pattern2]
+                    )
                     if overlap > 0:
                         overlap_counts.append(overlap)
 
             if overlap_counts:
-                ax2.hist(overlap_counts, bins=max(1, len(set(overlap_counts))),
-                        alpha=0.7, color='lightcoral', edgecolor='black')
+                ax2.hist(
+                    overlap_counts, bins=max(1, len(set(overlap_counts))),
+                    alpha=0.7, color='lightcoral', edgecolor='black'
+                )
                 ax2.set_xlabel('Number of Shared QKit Items')
                 ax2.set_ylabel('Number of Pattern Pairs')
                 ax2.set_title('QKit Overlap Distribution')
             else:
-                ax2.text(0.5, 0.5, 'No QKit overlaps found', ha='center', va='center')
+                ax2.text(
+                    0.5, 0.5, 'No QKit overlaps found',
+                    ha='center', va='center'
+                )
 
             # Plot 3: Most common QKit items
             qkit_item_counts = defaultdict(int)
@@ -559,14 +594,18 @@ class PatternVisualizer:
                     qkit_item_counts[item] += 1
 
             if qkit_item_counts:
-                common_items = sorted(qkit_item_counts.items(),
-                                    key=lambda x: x[1], reverse=True)[:10]
+                common_items = sorted(
+                    qkit_item_counts.items(),
+                    key=lambda x: x[1], reverse=True
+                )[:10]
                 if common_items:
                     items, counts = zip(*common_items)
                     ax3.barh(range(len(items)), counts, color='lightgreen')
                     ax3.set_yticks(range(len(items)))
-                    ax3.set_yticklabels([item[:20] + '...' if len(item) > 20 else item
-                                        for item in items])
+                    ax3.set_yticklabels([
+                        item[:20] + '...' if len(item) > 20 else item
+                        for item in items
+                    ])
                     ax3.set_xlabel('Usage Count')
                     ax3.set_title('Most Common QKit Items')
 
@@ -580,13 +619,17 @@ class PatternVisualizer:
                     complexity_scores.append(unique_ratio)
                     sizes.append(len(qkit))
 
-                ax4.scatter(sizes, complexity_scores, alpha=0.6, color='purple')
+                ax4.scatter(
+                    sizes, complexity_scores, alpha=0.6, color='purple'
+                )
                 ax4.set_xlabel('QKit Size')
                 ax4.set_ylabel('Uniqueness Ratio')
                 ax4.set_title('Pattern Complexity Analysis')
             else:
-                ax4.text(0.5, 0.5, 'Need more patterns for complexity analysis',
-                        ha='center', va='center')
+                ax4.text(
+                    0.5, 0.5, 'Need more patterns for complexity analysis',
+                    ha='center', va='center'
+                )
 
             plt.tight_layout()
 

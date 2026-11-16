@@ -9,6 +9,7 @@ import os
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
+
 def run_basic_functionality():
     """Test basic ATLAS functionality."""
     print("🧪 Testing Basic ATLAS Functionality")
@@ -50,6 +51,7 @@ def run_basic_functionality():
         traceback.print_exc()
         return False
 
+
 def run_comprehensive_class():
     """Test the comprehensive test class."""
     print("\n🧪 Testing Comprehensive Test Class")
@@ -68,6 +70,7 @@ def run_comprehensive_class():
         print("✓ Engine initialization test")
 
         # Run entity operations test
+        test.setup_method()
         test.test_multiple_entity_operations()
         print("✓ Multiple entity operations test")
 
@@ -78,6 +81,7 @@ def run_comprehensive_class():
         import traceback
         traceback.print_exc()
         return False
+
 
 def main():
     """Main test runner."""
@@ -104,6 +108,7 @@ def main():
     else:
         print("❌ Some tests failed")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

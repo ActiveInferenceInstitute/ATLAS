@@ -7,19 +7,19 @@ This module tests boundary conditions, error handling, and system robustness.
 import sys
 import os
 import time
-from typing import Dict, List, Any
+from io import BytesIO
+
+import networkx as nx
 
 # Add src to path for imports in test environment
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from atlas.core.engine import ATLASEngine, ATLASConfig
-from atlas.entities.entity import Entity, EntityMetadata
+from atlas.entities.entity import Entity
 from atlas.entities.attribute import Attribute
 from atlas.patterns.pattern import Pattern
 from atlas.patterns.pattern_engine import PatternEngine
-from atlas.queries.iquery import iQuery, QueryPriority, QueryStatus
-from atlas.interfaces.prompt_interface import SimpleTransformInterface
-from atlas.utils.helpers import generate_id, timestamp_now
+from atlas.queries.iquery import iQuery
 
 
 class TestEdgeCases:
@@ -39,9 +39,16 @@ class TestEdgeCases:
         # Test entity with None attribute values
         entity_none = Entity(
             entity_id="none_test",
-            attributes={"empty_string": "", "none_value": None, "zero": 0, "false": False}
+            attributes={
+                "empty_string": "",
+                "none_value": None,
+                "zero": 0,
+                "false": False
+            }
         )
-        assert self.atlas.add_entity(entity_none.id, entity_none.to_dict()) is True
+        assert self.atlas.add_entity(
+            entity_none.id, entity_none.to_dict()
+        ) is True
 
         # Test pattern with empty qkit
         pattern = Pattern(pattern_id="empty_pattern", qkit=[])
@@ -54,13 +61,17 @@ class TestEdgeCases:
     def test_export_graph_with_non_scalar_attributes(self):
         """GraphML/GEXF export must not fail on non-scalar node attributes."""
         # Entity data with list/dict values used to break GraphML export
-        self.atlas.add_entity("doc1", {"title": "Test", "tags": ["a", "b"], "meta": {"k": 1}})
+        self.atlas.add_entity(
+            "doc1", {"title": "Test", "tags": ["a", "b"], "meta": {"k": 1}}
+        )
 
         graphml = self.atlas.export_graph(format="graphml")
         assert "<graphml" in graphml
+        assert set(nx.parse_graphml(graphml)) == {"doc1"}
 
         gexf = self.atlas.export_graph(format="gexf")
         assert "<gexf" in gexf
+        assert set(nx.read_gexf(BytesIO(gexf.encode('utf-8')))) == {"doc1"}
 
     def test_extremely_long_strings(self):
         """Test handling of extremely long strings."""
@@ -80,7 +91,8 @@ class TestEdgeCases:
         assert self.atlas.add_entity(entity.id, entity.to_dict()) is True
 
         # Test search with long query
-        results = self.atlas.query(long_string[:100])  # Search with part of long string
+        # Search with part of the long string.
+        results = self.atlas.query(long_string[:100])
         # Should handle gracefully without errors
         assert isinstance(results, list)
 
@@ -185,7 +197,9 @@ class TestEdgeCases:
             self.atlas.add_entity(entity.id, entity.to_dict())
 
         creation_time = time.time() - start_time
-        print(f"Created {entity_count} entities in {creation_time:.3f} seconds")
+        print(
+            f"Created {entity_count} entities in {creation_time:.3f} seconds"
+        )
 
         # Verify all entities were created
         assert len(self.atlas.entities) >= entity_count
@@ -195,7 +209,9 @@ class TestEdgeCases:
         results = self.atlas.query("bulk_data")
         search_time = time.time() - start_time
 
-        print(f"Search found {len(results)} results in {search_time:.6f} seconds")
+        print(
+            f"Search found {len(results)} results in {search_time:.6f} seconds"
+        )
         assert len(results) >= entity_count
         assert search_time < 1.0  # Should be reasonably fast
 
@@ -232,7 +248,9 @@ class TestErrorHandling:
         try:
             malformed_entity = Entity(entity_id="", attributes=None)
             # Should handle gracefully
-            result = atlas.add_entity(malformed_entity.id, malformed_entity.to_dict())
+            result = atlas.add_entity(
+                malformed_entity.id, malformed_entity.to_dict()
+            )
             # System should continue functioning
             assert isinstance(result, bool)
         except Exception:
@@ -240,8 +258,12 @@ class TestErrorHandling:
             pass
 
         # Test with valid data after malformed attempt
-        valid_entity = Entity(entity_id="valid_after_error", attributes={"test": True})
-        assert atlas.add_entity(valid_entity.id, valid_entity.to_dict()) is True
+        valid_entity = Entity(
+            entity_id="valid_after_error", attributes={"test": True}
+        )
+        assert atlas.add_entity(
+            valid_entity.id, valid_entity.to_dict()
+        ) is True
 
         # System should still be functional
         metrics = atlas.get_metrics()
@@ -252,7 +274,9 @@ class TestErrorHandling:
         atlas = ATLASEngine(ATLASConfig())
 
         # Test relationship between non-existent entities
-        result = atlas.add_relationship("nonexistent_1", "nonexistent_2", "invalid_rel")
+        result = atlas.add_relationship(
+            "nonexistent_1", "nonexistent_2", "invalid_rel"
+        )
         # Should handle gracefully without crashing
         assert isinstance(result, bool)
 
@@ -356,8 +380,13 @@ class TestAttributeValidationEdgeCases:
         ]
 
         for value, expected_type in test_cases:
-            attr = Attribute(attribute_id=f"type_test_{id(value)}", value=value)
-            assert attr.data_type == expected_type, f"Failed for {value}: expected {expected_type}, got {attr.data_type}"
+            attr = Attribute(
+                attribute_id=f"type_test_{id(value)}", value=value
+            )
+            assert attr.data_type == expected_type, (
+                f"Failed for {value}: expected {expected_type}, "
+                f"got {attr.data_type}"
+            )
 
 
 class TestPatternEngineEdgeCases:
@@ -368,7 +397,9 @@ class TestPatternEngineEdgeCases:
         engine = PatternEngine()
 
         # Test operations on empty engine
-        similarity = engine.calculate_pattern_similarity("nonexistent1", "nonexistent2")
+        similarity = engine.calculate_pattern_similarity(
+            "nonexistent1", "nonexistent2"
+        )
         assert similarity == 0.0
 
         clusters = engine.detect_pattern_clusters()
@@ -386,7 +417,9 @@ class TestPatternEngineEdgeCases:
         engine.add_pattern(pattern)
 
         # Test similarity with itself
-        similarity = engine.calculate_pattern_similarity("lonely_pattern", "lonely_pattern")
+        similarity = engine.calculate_pattern_similarity(
+            "lonely_pattern", "lonely_pattern"
+        )
         assert similarity == 1.0  # Should be identical to itself
 
         # Test finding similar patterns
@@ -408,7 +441,9 @@ class TestPatternEngineEdgeCases:
         engine.add_pattern(pattern2)
 
         # Should have very high similarity
-        similarity = engine.calculate_pattern_similarity("identical1", "identical2")
+        similarity = engine.calculate_pattern_similarity(
+            "identical1", "identical2"
+        )
         assert similarity > 0.9
 
         # Should be found as similar
@@ -448,7 +483,9 @@ class TestConcurrencyAndRaceConditions:
         # Interleave different types of operations
         for i in range(50):
             # Create entity
-            entity = Entity(entity_id=f"interleaved_{i}", attributes={"value": i})
+            entity = Entity(
+                entity_id=f"interleaved_{i}", attributes={"value": i}
+            )
             atlas.add_entity(entity.id, entity.to_dict())
 
             # Create pattern
@@ -637,10 +674,15 @@ def run_edge_case_tests():
                     except Exception as e:
                         duration = time.time() - start_time
                         failed_tests += 1
-                        print(f"✗ {attr_name} - {type(e).__name__}: {str(e)} ({duration:.3f}s)")
+                        print(
+                            f"✗ {attr_name} - {type(e).__name__}: "
+                            f"{str(e)} ({duration:.3f}s)"
+                        )
 
     print(f"\n{'='*50}")
-    print(f"Edge Case Test Summary: {passed_tests} passed, {failed_tests} failed")
+    print(
+        f"Edge Case Test Summary: {passed_tests} passed, {failed_tests} failed"
+    )
     print(f"Total tests: {total_tests}")
     success_rate = (passed_tests / total_tests) * 100 if total_tests > 0 else 0
     print(f"Success rate: {success_rate:.1f}%")

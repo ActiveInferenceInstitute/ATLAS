@@ -6,7 +6,7 @@ systems within the ATLAS framework without requiring shared standards.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Callable, Union
+from typing import Dict, Any, Optional, Callable
 from abc import ABC, abstractmethod
 import uuid
 
@@ -54,7 +54,9 @@ class PromptInterface(ABC):
         logger.info(f"Created PromptInterface: {self.id}")
 
     @abstractmethod
-    def transform(self, data: Any, context: Optional[Dict[str, Any]] = None) -> Any:
+    def transform(
+        self, data: Any, context: Optional[Dict[str, Any]] = None
+    ) -> Any:
         """
         Transform input data according to the interface specification.
 
@@ -93,7 +95,9 @@ class PromptInterface(ABC):
         """
         pass
 
-    def execute(self, data: Any, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def execute(
+        self, data: Any, context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         Execute the prompt interface with input data.
 
@@ -129,9 +133,6 @@ class PromptInterface(ABC):
                     'data': None
                 }
 
-            # Update success rate
-            self.success_rate = (self.usage_count - self.error_count) / self.usage_count
-
             return {
                 'success': True,
                 'error': None,
@@ -140,13 +141,17 @@ class PromptInterface(ABC):
 
         except Exception as e:
             self.error_count += 1
-            self.success_rate = (self.usage_count - self.error_count) / self.usage_count
             logger.error(f"PromptInterface {self.id} execution failed: {e}")
             return {
                 'success': False,
                 'error': str(e),
                 'data': None
             }
+        finally:
+            self.success_rate = (
+                (self.usage_count - self.error_count) / self.usage_count
+                if self.usage_count else 0.0
+            )
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get usage and performance statistics."""
@@ -162,7 +167,10 @@ class PromptInterface(ABC):
         return f"PromptInterface(id='{self.id}', name='{self.name}')"
 
     def __repr__(self) -> str:
-        return f"PromptInterface(id='{self.id}', name='{self.name}', usage={self.usage_count})"
+        return (
+            f"PromptInterface(id='{self.id}', name='{self.name}', "
+            f"usage={self.usage_count})"
+        )
 
 
 class SimpleTransformInterface(PromptInterface):
@@ -190,15 +198,19 @@ class SimpleTransformInterface(PromptInterface):
             input_schema: Expected input data schema
             output_schema: Expected output data schema
         """
-        super().__init__(interface_id, name, description, input_schema, output_schema)
+        super().__init__(
+            interface_id, name, description, input_schema, output_schema
+        )
         self.transform_func = transform_func
 
-    def transform(self, data: Any, context: Optional[Dict[str, Any]] = None) -> Any:
+    def transform(
+        self, data: Any, context: Optional[Dict[str, Any]] = None
+    ) -> Any:
         """Transform data using the provided function."""
         return self.transform_func(data)
 
     def validate_input(self, data: Any) -> bool:
-        """Basic input validation - always returns True unless schema is specified."""
+        """Validate input, accepting all inputs when no schema is specified."""
         if not self.input_schema:
             return True
         # Simple type checking if schema specifies type
@@ -208,7 +220,7 @@ class SimpleTransformInterface(PromptInterface):
         return True
 
     def validate_output(self, data: Any) -> bool:
-        """Basic output validation - always returns True unless schema is specified."""
+        """Validate output, accepting all data when no schema is specified."""
         if not self.output_schema:
             return True
         # Simple type checking if schema specifies type
@@ -247,20 +259,28 @@ class HTTPPromptInterface(PromptInterface):
             input_schema: Expected input data schema
             output_schema: Expected output data schema
         """
-        super().__init__(interface_id, name, description, input_schema, output_schema)
+        super().__init__(
+            interface_id, name, description, input_schema, output_schema
+        )
         self.endpoint_url = endpoint_url
         self.method = method.upper()
         self.headers = headers or {}
 
-    def transform(self, data: Any, context: Optional[Dict[str, Any]] = None) -> Any:
+    def transform(
+        self, data: Any, context: Optional[Dict[str, Any]] = None
+    ) -> Any:
         """Transform data via HTTP request."""
         try:
             import requests
 
             if self.method == "GET":
-                response = requests.get(self.endpoint_url, params=data, headers=self.headers)
+                response = requests.get(
+                    self.endpoint_url, params=data, headers=self.headers
+                )
             elif self.method == "POST":
-                response = requests.post(self.endpoint_url, json=data, headers=self.headers)
+                response = requests.post(
+                    self.endpoint_url, json=data, headers=self.headers
+                )
             else:
                 raise ValueError(f"Unsupported HTTP method: {self.method}")
 
@@ -288,7 +308,9 @@ class HTTPPromptInterface(PromptInterface):
 
 
 # Factory functions for common interface patterns
-def create_identity_interface(interface_id: Optional[str] = None) -> SimpleTransformInterface:
+def create_identity_interface(
+    interface_id: Optional[str] = None
+) -> SimpleTransformInterface:
     """Create an identity transform interface (returns input unchanged)."""
     return SimpleTransformInterface(
         transform_func=lambda x: x,

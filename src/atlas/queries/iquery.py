@@ -6,7 +6,7 @@ for information and leverages the latent information in such requests.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Set, Callable
+from typing import Dict, List, Any, Optional, Set, Iterable
 from datetime import datetime
 import uuid
 from enum import Enum
@@ -84,8 +84,8 @@ class iQuery:
 
         # Query metadata
         self.execution_time: Optional[float] = None
-        self.quality_score: Optional[float] = None
-        self.confidence_score: Optional[float] = None
+        self.quality_score: float = 0.0
+        self.confidence_score: float = 0.0
 
         logger.info(f"Created iQuery: {self.id}")
 
@@ -114,7 +114,9 @@ class iQuery:
         try:
             if prompt_id in self.prompts:
                 self.prompts.remove(prompt_id)
-                logger.debug(f"Removed prompt {prompt_id} from iQuery {self.id}")
+                logger.debug(
+                    f"Removed prompt {prompt_id} from iQuery {self.id}"
+                )
                 return True
             return False
         except Exception as e:
@@ -134,11 +136,15 @@ class iQuery:
         try:
             if pattern_id not in self.target_patterns:
                 self.target_patterns.append(pattern_id)
-                logger.debug(f"Added target pattern {pattern_id} to iQuery {self.id}")
+                logger.debug(
+                    f"Added target pattern {pattern_id} to iQuery {self.id}"
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to add target pattern to iQuery {self.id}: {e}")
+            logger.error(
+                f"Failed to add target pattern to iQuery {self.id}: {e}"
+            )
             return False
 
     def set_context(self, key: str, value: Any) -> None:
@@ -156,6 +162,7 @@ class iQuery:
             if self.status == QueryStatus.PENDING:
                 self.status = QueryStatus.EXECUTING
                 self.started_at = datetime.now()
+                self._refresh_result_state()
                 logger.info(f"Started execution of iQuery {self.id}")
                 return True
             return False
@@ -163,7 +170,9 @@ class iQuery:
             logger.error(f"Failed to start iQuery {self.id}: {e}")
             return False
 
-    def complete_execution(self, results: Optional[List[Dict[str, Any]]] = None) -> bool:
+    def complete_execution(
+        self, results: Optional[List[Dict[str, Any]]] = None
+    ) -> bool:
         """
         Mark the query as completed with optional results.
 
@@ -179,12 +188,15 @@ class iQuery:
                 self.completed_at = datetime.now()
 
                 if self.started_at:
-                    self.execution_time = (self.completed_at - self.started_at).total_seconds()
+                    self.execution_time = (
+                        self.completed_at - self.started_at
+                    ).total_seconds()
 
-                if results:
-                    self.results.extend(results)
+                self._add_results(results if results is not None else ())
 
-                logger.info(f"Completed iQuery {self.id} in {self.execution_time}s")
+                logger.info(
+                    f"Completed iQuery {self.id} in {self.execution_time}s"
+                )
                 return True
             return False
         except Exception as e:
@@ -207,7 +219,11 @@ class iQuery:
             self.completed_at = datetime.now()
 
             if self.started_at:
-                self.execution_time = (self.completed_at - self.started_at).total_seconds()
+                self.execution_time = (
+                    self.completed_at - self.started_at
+                ).total_seconds()
+
+            self._refresh_result_state()
 
             logger.error(f"iQuery {self.id} failed: {error_message}")
             return True
@@ -223,7 +239,11 @@ class iQuery:
                 self.completed_at = datetime.now()
 
                 if self.started_at:
-                    self.execution_time = (self.completed_at - self.started_at).total_seconds()
+                    self.execution_time = (
+                        self.completed_at - self.started_at
+                    ).total_seconds()
+
+                self._refresh_result_state()
 
                 logger.info(f"Cancelled iQuery {self.id}")
                 return True
@@ -243,15 +263,7 @@ class iQuery:
             True if result was added successfully
         """
         try:
-            self.results.append(result)
-
-            # Extract entity IDs from results if present
-            if 'entity_id' in result:
-                self.response_entities.add(result['entity_id'])
-
-            # Extract derived patterns if present
-            if 'derived_patterns' in result:
-                self.derived_patterns.update(result['derived_patterns'])
+            self._add_results((result,))
 
             logger.debug(f"Added result to iQuery {self.id}")
             return True
@@ -262,9 +274,48 @@ class iQuery:
     def clear_results(self) -> None:
         """Clear all results from this query."""
         self.results.clear()
+        self._refresh_result_state()
+        logger.debug(f"Cleared results for iQuery {self.id}")
+
+    def _add_results(self, results: Iterable[Dict[str, Any]]) -> None:
+        """Ingest bulk and incremental results through the same index path."""
+        self.results.extend(results)
+        self._refresh_result_state()
+
+    def _refresh_result_state(self) -> None:
+        """Reconcile indexes and scores with the mutable result list."""
+        self.quality_score = 0.0
+        self.confidence_score = 0.0
         self.response_entities.clear()
         self.derived_patterns.clear()
-        logger.debug(f"Cleared results for iQuery {self.id}")
+
+        for result in self.results:
+            if 'entity_id' in result:
+                self.response_entities.add(result['entity_id'])
+            if 'derived_patterns' in result:
+                self.derived_patterns.update(result['derived_patterns'])
+
+        if not self.results:
+            return
+
+        # Keep the existing quality and confidence formulas.
+        result_count_score = min(len(self.results) / 10.0, 0.4)
+        entity_diversity_score = min(len(self.response_entities) / 5.0, 0.3)
+        pattern_discovery_score = min(len(self.derived_patterns) / 3.0, 0.2)
+        execution_efficiency_score = (
+            0.1 if self.execution_time and self.execution_time < 5.0 else 0.0
+        )
+        self.quality_score = (
+            result_count_score + entity_diversity_score
+            + pattern_discovery_score + execution_efficiency_score
+        )
+
+        base_confidence = 0.5
+        result_consistency = 0.3 if len(self.results) > 1 else 0.1
+        pattern_alignment = 0.2 if self.derived_patterns else 0.0
+        self.confidence_score = min(
+            base_confidence + result_consistency + pattern_alignment, 1.0
+        )
 
     def calculate_quality_score(self) -> float:
         """
@@ -274,21 +325,13 @@ class iQuery:
             Quality score between 0.0 and 1.0
         """
         try:
-            if not self.results:
-                return 0.0
-
-            # Simple quality calculation - can be enhanced
-            result_count_score = min(len(self.results) / 10.0, 0.4)
-            entity_diversity_score = min(len(self.response_entities) / 5.0, 0.3)
-            pattern_discovery_score = min(len(self.derived_patterns) / 3.0, 0.2)
-            execution_efficiency_score = 0.1 if self.execution_time and self.execution_time < 5.0 else 0.0
-
-            self.quality_score = (result_count_score + entity_diversity_score +
-                                pattern_discovery_score + execution_efficiency_score)
+            self._refresh_result_state()
             return self.quality_score
 
         except Exception as e:
-            logger.error(f"Failed to calculate quality score for iQuery {self.id}: {e}")
+            logger.error(
+                f"Failed to calculate quality score for iQuery {self.id}: {e}"
+            )
             return 0.0
 
     def calculate_confidence_score(self) -> float:
@@ -299,42 +342,40 @@ class iQuery:
             Confidence score between 0.0 and 1.0
         """
         try:
-            if not self.results:
-                return 0.0
-
-            # Simple confidence calculation - can be enhanced
-            # This would typically involve checking result consistency,
-            # source reliability, and validation against known patterns
-
-            base_confidence = 0.5  # Default baseline
-            result_consistency = 0.3 if len(self.results) > 1 else 0.1
-            pattern_alignment = 0.2 if self.derived_patterns else 0.0
-
-            self.confidence_score = base_confidence + result_consistency + pattern_alignment
-            return min(self.confidence_score, 1.0)
+            self._refresh_result_state()
+            return self.confidence_score
 
         except Exception as e:
-            logger.error(f"Failed to calculate confidence score for iQuery {self.id}: {e}")
+            logger.error(
+                f"Failed to calculate confidence score "
+                f"for iQuery {self.id}: {e}"
+            )
             return 0.0
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get execution and performance statistics."""
+        self.calculate_quality_score()
         return {
             'status': self.status.value,
             'execution_time': self.execution_time,
             'result_count': len(self.results),
             'response_entity_count': len(self.response_entities),
             'derived_pattern_count': len(self.derived_patterns),
-            'quality_score': self.quality_score or self.calculate_quality_score(),
-            'confidence_score': self.confidence_score or self.calculate_confidence_score(),
+            'quality_score': self.quality_score,
+            'confidence_score': self.confidence_score,
             'priority': self.priority.value,
             'created_at': self.created_at.isoformat(),
-            'started_at': self.started_at.isoformat() if self.started_at else None,
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None
+            'started_at': (
+                self.started_at.isoformat() if self.started_at else None
+            ),
+            'completed_at': (
+                self.completed_at.isoformat() if self.completed_at else None
+            )
         }
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert iQuery to dictionary representation."""
+        statistics = self.get_statistics()
         return {
             'id': self.id,
             'ref_id': self.ref_id,
@@ -348,7 +389,7 @@ class iQuery:
             'response_entities': list(self.response_entities),
             'derived_patterns': list(self.derived_patterns),
             'error_message': self.error_message,
-            'statistics': self.get_statistics()
+            'statistics': statistics
         }
 
     @classmethod
@@ -366,9 +407,6 @@ class iQuery:
 
         # Restore execution state
         query.status = QueryStatus(data['status'])
-        query.results = data.get('results', [])
-        query.response_entities = set(data.get('response_entities', []))
-        query.derived_patterns = set(data.get('derived_patterns', []))
         query.error_message = data.get('error_message')
 
         # Restore timestamps if present in statistics
@@ -381,13 +419,15 @@ class iQuery:
             query.completed_at = datetime.fromisoformat(stats['completed_at'])
 
         query.execution_time = stats.get('execution_time')
-        query.quality_score = stats.get('quality_score')
-        query.confidence_score = stats.get('confidence_score')
+        query._add_results(data.get('results', []))
 
         return query
 
     def __str__(self) -> str:
-        return f"iQuery(id='{self.id}', status={self.status.value}, results={len(self.results)})"
+        return (
+            f"iQuery(id='{self.id}', status={self.status.value}, "
+            f"results={len(self.results)})"
+        )
 
     def __repr__(self) -> str:
         return (f"iQuery(id='{self.id}', query_text='{self.query_text}', "

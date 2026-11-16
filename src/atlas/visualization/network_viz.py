@@ -6,13 +6,12 @@ community detection, centrality analysis, and dynamic network exploration.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Set
+from typing import Dict, Any, Optional, Tuple
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import networkx as nx
 import numpy as np
 import pandas as pd
-from collections import defaultdict
 
 from .common import NETWORK_COLORS
 
@@ -52,7 +51,7 @@ class NetworkVisualizer:
             raise ValueError("ATLAS engine not provided")
 
         try:
-            graph = self.atlas_engine.graph
+            graph = self.atlas_engine.reconcile_graph()
 
             if not graph.nodes():
                 return {'error': 'No nodes in graph'}
@@ -62,7 +61,10 @@ class NetworkVisualizer:
                     'nodes': graph.number_of_nodes(),
                     'edges': graph.number_of_edges(),
                     'density': nx.density(graph),
-                    'is_connected': nx.is_weakly_connected(graph) if graph.is_directed() else nx.is_connected(graph)
+                    'is_connected': (
+                        nx.is_weakly_connected(graph) if graph.is_directed()
+                        else nx.is_connected(graph)
+                    )
                 },
                 'centrality_measures': {},
                 'clustering': {},
@@ -70,7 +72,7 @@ class NetworkVisualizer:
                 'paths': {}
             }
 
-            # Calculate centrality measures (for smaller graphs with error handling)
+            # Centrality measures for smaller graphs, with error handling.
             if graph.number_of_nodes() <= 500:
                 centrality_measures = {
                     'degree_centrality': nx.degree_centrality(graph),
@@ -80,21 +82,32 @@ class NetworkVisualizer:
 
                 # Try eigenvector centrality with multiple strategies
                 try:
-                    centrality_measures['eigenvector_centrality'] = nx.eigenvector_centrality(
-                        graph, max_iter=1000, tol=1e-06
+                    centrality_measures['eigenvector_centrality'] = (
+                        nx.eigenvector_centrality(
+                            graph, max_iter=1000, tol=1e-06
+                        )
                     )
                 except nx.PowerIterationFailedConvergence:
                     try:
                         # Fallback with more iterations and different tolerance
-                        centrality_measures['eigenvector_centrality'] = nx.eigenvector_centrality(
-                            graph, max_iter=5000, tol=1e-04
+                        centrality_measures['eigenvector_centrality'] = (
+                            nx.eigenvector_centrality(
+                                graph, max_iter=5000, tol=1e-04
+                            )
                         )
                     except nx.PowerIterationFailedConvergence:
                         # Final fallback: use PageRank as approximation
-                        logger.warning("Eigenvector centrality failed, using PageRank approximation")
-                        centrality_measures['eigenvector_centrality'] = nx.pagerank(graph, max_iter=1000)
+                        logger.warning(
+                            "Eigenvector centrality failed, using "
+                            "PageRank approximation"
+                        )
+                        centrality_measures['eigenvector_centrality'] = (
+                            nx.pagerank(graph, max_iter=1000)
+                        )
                 except Exception as e:
-                    logger.warning(f"Eigenvector centrality calculation failed: {e}")
+                    logger.warning(
+                        f"Eigenvector centrality calculation failed: {e}"
+                    )
                     centrality_measures['eigenvector_centrality'] = {}
 
                 analysis['centrality_measures'] = centrality_measures
@@ -110,30 +123,40 @@ class NetworkVisualizer:
             # Community detection
             if not graph.is_directed() and graph.number_of_nodes() > 1:
                 try:
-                    communities = nx.community.greedy_modularity_communities(graph)
+                    communities = nx.community.greedy_modularity_communities(
+                        graph
+                    )
                     analysis['communities'] = {
                         'community_count': len(communities),
-                        'modularity': nx.community.modularity(graph, communities),
+                        'modularity': nx.community.modularity(
+                            graph, communities
+                        ),
                         'community_sizes': [len(c) for c in communities]
                     }
-                except:
-                    analysis['communities'] = {'error': 'Community detection failed'}
+                except Exception:
+                    analysis['communities'] = {
+                        'error': 'Community detection failed'
+                    }
 
             # Path analysis
-            if graph.is_connected() if not graph.is_directed() else nx.is_weakly_connected(graph):
+            if analysis['basic_metrics']['is_connected']:
                 try:
                     if graph.number_of_nodes() <= 100:  # Only for small graphs
                         if graph.is_directed():
                             analysis['paths'] = {
-                                'average_shortest_path': nx.average_shortest_path_length(graph)
+                                'average_shortest_path': (
+                                    nx.average_shortest_path_length(graph)
+                                )
                             }
                         else:
                             analysis['paths'] = {
-                                'average_shortest_path': nx.average_shortest_path_length(graph),
+                                'average_shortest_path': (
+                                    nx.average_shortest_path_length(graph)
+                                ),
                                 'diameter': nx.diameter(graph),
                                 'radius': nx.radius(graph)
                             }
-                except:
+                except Exception:
                     analysis['paths'] = {'error': 'Path analysis failed'}
 
             return analysis
@@ -152,7 +175,8 @@ class NetworkVisualizer:
         Visualize centrality measures across the network.
 
         Args:
-            centrality_type: Type of centrality ('degree', 'betweenness', 'closeness', 'eigenvector')
+            centrality_type: 'degree', 'betweenness', 'closeness', or
+                'eigenvector'
             figsize: Figure size tuple
             save_path: Optional path to save the figure
 
@@ -164,10 +188,12 @@ class NetworkVisualizer:
 
         try:
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
-            graph = self.atlas_engine.graph
+            graph = self.atlas_engine.reconcile_graph()
 
             if not graph.nodes():
-                ax1.text(0.5, 0.5, 'No nodes to analyze', ha='center', va='center')
+                ax1.text(
+                    0.5, 0.5, 'No nodes to analyze', ha='center', va='center'
+                )
                 return fig
 
             # Calculate centrality
@@ -179,17 +205,24 @@ class NetworkVisualizer:
                 centrality = nx.closeness_centrality(graph)
             elif centrality_type == 'eigenvector':
                 try:
-                    centrality = nx.eigenvector_centrality(graph, max_iter=1000, tol=1e-06)
+                    centrality = nx.eigenvector_centrality(
+                        graph, max_iter=1000, tol=1e-06
+                    )
                 except nx.PowerIterationFailedConvergence:
-                    logger.warning("Eigenvector centrality failed to converge, using PageRank")
+                    logger.warning(
+                        "Eigenvector centrality failed to converge, "
+                        "using PageRank"
+                    )
                     centrality = nx.pagerank(graph, max_iter=1000)
             else:
                 raise ValueError(f"Unknown centrality type: {centrality_type}")
 
             # 1. Network visualization with centrality-based node sizing
-            pos = nx.spring_layout(graph, k=1, iterations=50)
+            pos = nx.spring_layout(graph, k=1, iterations=50, seed=42)
 
-            node_sizes = [centrality[node] * 1000 + 100 for node in graph.nodes()]
+            node_sizes = [
+                centrality[node] * 1000 + 100 for node in graph.nodes()
+            ]
             node_colors = [centrality[node] for node in graph.nodes()]
 
             nx.draw_networkx_nodes(
@@ -212,43 +245,59 @@ class NetworkVisualizer:
 
             # 2. Centrality distribution histogram
             centrality_values = list(centrality.values())
-            ax2.hist(centrality_values, bins=20, alpha=0.7,
-                    color=self.network_colors['centrality'](0.7), edgecolor='black')
+            ax2.hist(
+                centrality_values, bins=20, alpha=0.7,
+                color=self.network_colors['centrality'](0.7), edgecolor='black'
+            )
             ax2.set_xlabel(f'{centrality_type.title()} Centrality')
             ax2.set_ylabel('Frequency')
             ax2.set_title('Centrality Distribution')
-            ax2.axvline(np.mean(centrality_values), color='red', linestyle='--',
-                       label=f'Mean: {np.mean(centrality_values):.3f}')
+            ax2.axvline(
+                np.mean(centrality_values), color='red', linestyle='--',
+                label=f'Mean: {np.mean(centrality_values):.3f}'
+            )
             ax2.legend()
 
             # 3. Top nodes by centrality
-            top_nodes = sorted(centrality.items(), key=lambda x: x[1], reverse=True)[:10]
+            top_nodes = sorted(
+                centrality.items(), key=lambda x: x[1], reverse=True
+            )[:10]
             if top_nodes:
                 nodes, values = zip(*top_nodes)
-                bars = ax3.barh(range(len(nodes)), values,
-                               color=self.network_colors['centrality'](0.7))
+                ax3.barh(
+                    range(len(nodes)), values,
+                    color=self.network_colors['centrality'](0.7)
+                )
                 ax3.set_yticks(range(len(nodes)))
-                ax3.set_yticklabels([node[:15] + '...' if len(node) > 15 else node
-                                   for node in nodes])
+                ax3.set_yticklabels([
+                    node[:15] + '...' if len(node) > 15 else node
+                    for node in nodes
+                ])
                 ax3.set_xlabel(f'{centrality_type.title()} Centrality')
-                ax3.set_title(f'Top 10 Nodes by {centrality_type.title()} Centrality')
+                ax3.set_title(
+                    f'Top 10 Nodes by {centrality_type.title()} Centrality'
+                )
 
             # 4. Centrality correlation with degree
             degrees = dict(graph.degree())
             degree_values = [degrees[node] for node in graph.nodes()]
             centrality_values = [centrality[node] for node in graph.nodes()]
 
-            ax4.scatter(degree_values, centrality_values, alpha=0.6,
-                       color=self.network_colors['centrality'](0.7))
+            ax4.scatter(
+                degree_values, centrality_values, alpha=0.6,
+                color=self.network_colors['centrality'](0.7)
+            )
             ax4.set_xlabel('Node Degree')
             ax4.set_ylabel(f'{centrality_type.title()} Centrality')
             ax4.set_title(f'Degree vs {centrality_type.title()} Centrality')
 
             # Calculate correlation
             correlation = np.corrcoef(degree_values, centrality_values)[0, 1]
-            ax4.text(0.05, 0.95, f'Correlation: {correlation:.3f}',
-                    transform=ax4.transAxes, va='top',
-                    bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+            ax4.text(
+                0.05, 0.95, f'Correlation: {correlation:.3f}',
+                transform=ax4.transAxes, va='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8)
+            )
 
             plt.tight_layout()
 
@@ -281,10 +330,12 @@ class NetworkVisualizer:
 
         try:
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
-            graph = self.atlas_engine.graph
+            graph = self.atlas_engine.reconcile_graph()
 
             if not graph.nodes():
-                ax1.text(0.5, 0.5, 'No nodes to analyze', ha='center', va='center')
+                ax1.text(
+                    0.5, 0.5, 'No nodes to analyze', ha='center', va='center'
+                )
                 return fig
 
             # Convert to undirected for community detection
@@ -295,14 +346,25 @@ class NetworkVisualizer:
 
             # Detect communities
             try:
-                communities = list(nx.community.greedy_modularity_communities(undirected_graph))
-                modularity = nx.community.modularity(undirected_graph, communities)
-            except:
-                ax1.text(0.5, 0.5, 'Community detection failed', ha='center', va='center')
+                communities = list(
+                    nx.community.greedy_modularity_communities(
+                        undirected_graph
+                    )
+                )
+                modularity = nx.community.modularity(
+                    undirected_graph, communities
+                )
+            except Exception:
+                ax1.text(
+                    0.5, 0.5, 'Community detection failed',
+                    ha='center', va='center'
+                )
                 return fig
 
             # 1. Network with community colors
-            pos = nx.spring_layout(undirected_graph, k=1, iterations=50)
+            pos = nx.spring_layout(
+                undirected_graph, k=1, iterations=50, seed=42
+            )
 
             # Assign colors to communities
             community_colors = {}
@@ -312,7 +374,10 @@ class NetworkVisualizer:
                 for node in community:
                     community_colors[node] = color_map[i]
 
-            node_colors = [community_colors.get(node, 'gray') for node in undirected_graph.nodes()]
+            node_colors = [
+                community_colors.get(node, 'gray')
+                for node in undirected_graph.nodes()
+            ]
 
             nx.draw_networkx_nodes(
                 undirected_graph, pos, ax=ax1,
@@ -327,13 +392,17 @@ class NetworkVisualizer:
                 alpha=0.3
             )
 
-            ax1.set_title(f'Community Structure (Modularity: {modularity:.3f})')
+            ax1.set_title(
+                f'Community Structure (Modularity: {modularity:.3f})'
+            )
             ax1.axis('off')
 
             # 2. Community size distribution
             community_sizes = [len(c) for c in communities]
-            ax2.hist(community_sizes, bins=max(1, len(set(community_sizes))),
-                    alpha=0.7, color='skyblue', edgecolor='black')
+            ax2.hist(
+                community_sizes, bins=max(1, len(set(community_sizes))),
+                alpha=0.7, color='skyblue', edgecolor='black'
+            )
             ax2.set_xlabel('Community Size')
             ax2.set_ylabel('Frequency')
             ax2.set_title('Community Size Distribution')
@@ -345,19 +414,29 @@ class NetworkVisualizer:
 
             for resolution in resolutions:
                 try:
-                    temp_communities = nx.community.greedy_modularity_communities(
-                        undirected_graph, resolution=resolution
+                    temp_communities = (
+                        nx.community.greedy_modularity_communities(
+                            undirected_graph, resolution=resolution
+                        )
                     )
-                    temp_modularity = nx.community.modularity(undirected_graph, temp_communities)
+                    temp_modularity = nx.community.modularity(
+                        undirected_graph, temp_communities
+                    )
                     modularities.append(temp_modularity)
                     community_counts.append(len(temp_communities))
-                except:
+                except Exception:
                     modularities.append(0)
                     community_counts.append(0)
 
             ax3_twin = ax3.twinx()
-            line1 = ax3.plot(resolutions, modularities, 'b-o', markersize=4, label='Modularity')
-            line2 = ax3_twin.plot(resolutions, community_counts, 'r-s', markersize=4, label='Community Count')
+            line1 = ax3.plot(
+                resolutions, modularities, 'b-o',
+                markersize=4, label='Modularity'
+            )
+            line2 = ax3_twin.plot(
+                resolutions, community_counts, 'r-s',
+                markersize=4, label='Community Count'
+            )
 
             ax3.set_xlabel('Resolution Parameter')
             ax3.set_ylabel('Modularity', color='b')
@@ -366,7 +445,7 @@ class NetworkVisualizer:
 
             # Combine legends
             lines = line1 + line2
-            labels = [l.get_label() for l in lines]
+            labels = [line.get_label() for line in lines]
             ax3.legend(lines, labels, loc='upper right')
 
             # 4. Inter-community vs intra-community edges
@@ -381,7 +460,10 @@ class NetworkVisualizer:
 
             for edge in undirected_graph.edges():
                 node1, node2 = edge
-                if node_to_community.get(node1) == node_to_community.get(node2):
+                if (
+                    node_to_community.get(node1)
+                    == node_to_community.get(node2)
+                ):
                     intra_edges += 1
                 else:
                     inter_edges += 1
@@ -397,9 +479,14 @@ class NetworkVisualizer:
             # Add percentage labels
             total_edges = intra_edges + inter_edges
             for bar, count in zip(bars, edge_counts):
-                percentage = (count / total_edges) * 100 if total_edges > 0 else 0
-                ax4.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.5,
-                        f'{percentage:.1f}%', ha='center', va='bottom')
+                percentage = (
+                    (count / total_edges) * 100 if total_edges > 0 else 0
+                )
+                ax4.text(
+                    bar.get_x() + bar.get_width() / 2.,
+                    bar.get_height() + 0.5,
+                    f'{percentage:.1f}%', ha='center', va='bottom'
+                )
 
             plt.tight_layout()
 
@@ -436,32 +523,28 @@ class NetworkVisualizer:
             fig = plt.figure(figsize=figsize)
             gs = fig.add_gridspec(2, 3, hspace=0.3, wspace=0.3)
 
-            graph = self.atlas_engine.graph
+            graph = self.atlas_engine.reconcile_graph()
 
             if not graph.nodes():
                 ax = fig.add_subplot(gs[:, :])
-                ax.text(0.5, 0.5, 'No nodes to analyze', ha='center', va='center')
+                ax.text(
+                    0.5, 0.5, 'No nodes to analyze', ha='center', va='center'
+                )
                 return fig
 
             # Simulate network growth over time
-            initial_nodes = min(5, len(graph.nodes()))
             node_list = list(graph.nodes())
-            edge_list = list(graph.edges())
 
             evolution_data = []
 
             for step in range(time_steps):
-                # Calculate how many nodes/edges to include at this step
+                # Calculate how many nodes to include at this step.
                 node_fraction = (step + 1) / time_steps
-                edge_fraction = (step + 1) / time_steps
 
                 nodes_to_include = int(len(node_list) * node_fraction)
-                edges_to_include = int(len(edge_list) * edge_fraction)
 
                 # Create subgraph for this time step
                 current_nodes = node_list[:nodes_to_include]
-                current_edges = [e for e in edge_list[:edges_to_include]
-                               if e[0] in current_nodes and e[1] in current_nodes]
 
                 step_graph = graph.subgraph(current_nodes).copy()
 
@@ -470,12 +553,21 @@ class NetworkVisualizer:
                     'step': step,
                     'nodes': step_graph.number_of_nodes(),
                     'edges': step_graph.number_of_edges(),
-                    'density': nx.density(step_graph) if step_graph.number_of_nodes() > 1 else 0,
-                    'avg_degree': np.mean([d for n, d in step_graph.degree()]) if step_graph.nodes() else 0
+                    'density': (
+                        nx.density(step_graph)
+                        if step_graph.number_of_nodes() > 1 else 0
+                    ),
+                    'avg_degree': (
+                        np.mean([d for n, d in step_graph.degree()])
+                        if step_graph.nodes() else 0
+                    )
                 }
 
                 # Add clustering coefficient for undirected graphs
-                if not step_graph.is_directed() and step_graph.number_of_nodes() > 2:
+                if (
+                    not step_graph.is_directed()
+                    and step_graph.number_of_nodes() > 2
+                ):
                     step_data['clustering'] = nx.average_clustering(step_graph)
                 else:
                     step_data['clustering'] = 0
@@ -486,9 +578,13 @@ class NetworkVisualizer:
 
             # 1. Network size evolution (top left, 2 columns)
             ax1 = fig.add_subplot(gs[0, :2])
-            ax1.plot(df['step'], df['nodes'], 'bo-', label='Nodes', markersize=6)
+            ax1.plot(
+                df['step'], df['nodes'], 'bo-', label='Nodes', markersize=6
+            )
             ax1_twin = ax1.twinx()
-            ax1_twin.plot(df['step'], df['edges'], 'ro-', label='Edges', markersize=6)
+            ax1_twin.plot(
+                df['step'], df['edges'], 'ro-', label='Edges', markersize=6
+            )
 
             ax1.set_xlabel('Time Step')
             ax1.set_ylabel('Number of Nodes', color='b')
@@ -527,7 +623,7 @@ class NetworkVisualizer:
 
             # 5. Final network snapshot (bottom right)
             ax5 = fig.add_subplot(gs[1, 2])
-            pos = nx.spring_layout(graph, k=0.5, iterations=30)
+            pos = nx.spring_layout(graph, k=0.5, iterations=30, seed=42)
 
             # Color nodes by when they were added (simulated)
             node_colors = []
@@ -554,7 +650,9 @@ class NetworkVisualizer:
             ax5.set_title('Final Network State')
             ax5.axis('off')
 
-            plt.suptitle('Network Evolution Analysis', fontsize=16, fontweight='bold')
+            plt.suptitle(
+                'Network Evolution Analysis', fontsize=16, fontweight='bold'
+            )
 
             if save_path:
                 plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -588,7 +686,9 @@ class NetworkVisualizer:
             # Generate centrality analysis
             centrality_fig = self.visualize_centrality_analysis()
             centrality_path = f"{output_path}_centrality.png"
-            centrality_fig.savefig(centrality_path, dpi=300, bbox_inches='tight')
+            centrality_fig.savefig(
+                centrality_path, dpi=300, bbox_inches='tight'
+            )
             analysis['visualizations_generated'].append(centrality_path)
             plt.close(centrality_fig)
 
